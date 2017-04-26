@@ -17,19 +17,19 @@ func (c ioctl_e) String() string {
 		mode_str += " write"
 	}
 	if mode&CmdRead > 0 {
-		mode_str += " read"
+		mode_str += " read "
 	}
 	return fmt.Sprintf("ioctl%s (%d bytes) 0x%04x", mode_str, size, uintptr(cmd))
 }
 
-func ioctl(path string, fd uintptr, c ioctl_e, ptr interface{}) error {
+func ioctl(fd uintptr, c ioctl_e, ptr interface{}) error {
 	v := reflect.ValueOf(ptr)
 	p := v.Pointer()
 
-	fmt.Printf("%s :: %d bytes\n", c, reflect.TypeOf(ptr).Elem().Size())
+	//fmt.Printf("%s :: %d bytes\n", c, reflect.TypeOf(ptr).Elem().Size())
 	_, _, e := syscall.Syscall(syscall.SYS_IOCTL, fd, uintptr(c), p)
 	if e != 0 {
-		return fmt.Errorf("%s on %#v failed: %v", c, path, e)
+		return fmt.Errorf("%s failed: %v", c, e)
 	}
 	return nil
 }

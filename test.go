@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"color"
 )
 
 // _, _, errnop := syscall.Syscall(syscall.SYS_IOCTL, uintptr(file.Fd()), uintptr(TUNSETIFF), uintptr(unsafe.Pointer(&ifr)))
@@ -18,10 +20,28 @@ func main() {
 	//		fmt.Println(err)
 	//	}
 
-	if err := boop("/dev/snd/pcmC1D0p"); err != nil {
+	if err := boop("/dev/snd/pcmC0D0p"); err != nil {
 		fmt.Println(err)
 	}
 
+}
+
+func refine(fd uintptr, params *HwParams, last *HwParams) error {
+
+	fmt.Println(color.Text(color.Green))
+	fmt.Print(params.Diff(last))
+	*last = *params
+
+	err := ioctl(fd, ioctl_encode(CmdRead|CmdWrite, 608, CmdPCMHwRefine), params)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(color.Text(color.Magenta))
+	fmt.Print(params.Diff(last))
+	*last = *params
+
+	return nil
 }
 
 func boop(path string) error {
@@ -32,20 +52,50 @@ func boop(path string) error {
 	defer fh.Close()
 
 	var pv PVersion
-	err = ioctl(path, fh.Fd(), ioctl_encode(CmdRead, 4, CmdPCMVersion), &pv)
+	err = ioctl(fh.Fd(), ioctl_encode(CmdRead, 4, CmdPCMVersion), &pv)
 	if err != nil {
 		return err
 	}
 
 	ttstamp := uint32(PCMTimestampTypeGettimeofday)
-	err = ioctl(path, fh.Fd(), ioctl_encode(CmdWrite, 4, CmdPCMTimestampType), &ttstamp)
+	err = ioctl(fh.Fd(), ioctl_encode(CmdWrite, 4, CmdPCMTimestampType), &ttstamp)
 	if err != nil {
 		return err
 	}
 
-	var params HwParams
-	err = ioctl(path, fh.Fd(), ioctl_encode(CmdRead|CmdWrite, 608, CmdPCMHwRefine), &params)
-	if err != nil {
+	params := &HwParams{}
+	last := &HwParams{}
+
+	for i := range params.Masks {
+		for ii := 0; ii < 2; ii++ {
+			params.Masks[i].Bits[ii] = 0xffffffff
+		}
+	}
+	for i := range params.Intervals {
+		params.Intervals[i].Max = 0xffffffff
+	}
+	params.Rmask = 0xffffffff
+
+	if err := refine(fh.Fd(), params, last); err != nil {
+		return err
+	}
+
+	params.Cmask = 0
+	params.Rmask = 0xffffffff
+
+	if err := refine(fh.Fd(), params, last); err != nil {
+		return err
+	}
+
+	params.Cmask = 0
+	//params.Rmask = 0xffffffff
+	params.Rmask = 0
+
+	params.Intervals[2].Min = 12
+	params.Intervals[2].Max = 12
+	params.Intervals[2].Flags = 0
+
+	if err := refine(fh.Fd(), params, last); err != nil {
 		return err
 	}
 
@@ -66,13 +116,13 @@ func list_the_things() error {
 		defer fh.Close()
 
 		var pv PVersion
-		err = ioctl(path, fh.Fd(), ioctl_encode(CmdRead, 4, CmdControlVersion), &pv)
+		err = ioctl(fh.Fd(), ioctl_encode(CmdRead, 4, CmdControlVersion), &pv)
 		if err != nil {
 			return err
 		}
 
 		var ci CardInfo
-		err = ioctl(path, fh.Fd(), ioctl_encode(CmdRead, 376, CmdControlCardInfo), &ci)
+		err = ioctl(fh.Fd(), ioctl_encode(CmdRead, 376, CmdControlCardInfo), &ci)
 		if err != nil {
 			return err
 		}
@@ -82,7 +132,7 @@ func list_the_things() error {
 		var next int32 = -1
 
 		for {
-			err = ioctl(path, fh.Fd(), ioctl_encode(CmdRead, 4, CmdControlPCMNextDevice), &next)
+			err = ioctl(fh.Fd(), ioctl_encode(CmdRead, 4, CmdControlPCMNextDevice), &next)
 			if err != nil {
 				return err
 			}
@@ -94,7 +144,7 @@ func list_the_things() error {
 			var pi PCMInfo
 			pi.Device = uint32(next)
 			pi.Subdevice = 0
-			err = ioctl(path, fh.Fd(), ioctl_encode(CmdRead|CmdWrite, 288, CmdControlPCMInfo), &pi)
+			err = ioctl(fh.Fd(), ioctl_encode(CmdRead|CmdWrite, 288, CmdControlPCMInfo), &pi)
 			if err != nil {
 				//return err
 				//fmt.Println(err)
