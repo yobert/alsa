@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 )
 
 const (
@@ -86,95 +85,9 @@ type Mask struct {
 	Bits [(MaskMax + 31) / 32]uint32
 }
 
-const (
-	HwParamAccess    = 0
-	HwParamFormat    = 1
-	HwParamSubFormat = 2
-	HwParamFirstMask = HwParamAccess
-	HwParamLastMask  = HwParamSubFormat
-)
-
-func fmt_mask(i uint32) string {
-	switch i {
-	case HwParamAccess:
-		return "access"
-	case HwParamFormat:
-		return "format"
-	case HwParamSubFormat:
-		return "subfmt"
-	default:
-		return "invalid mask"
-	}
-}
-
-const (
-	HwParamSampleBits    = 8
-	HwParamFrameBits     = 9
-	HwParamChannels      = 10
-	HwParamRate          = 11
-	HwParamPeriodTime    = 12
-	HwParamPeriodSize    = 13
-	HwParamPeriodBytes   = 14
-	HwParamPeriods       = 15
-	HwParamBufferTime    = 16
-	HwParamBufferSize    = 17
-	HwParamBufferBytes   = 18
-	HwParamTickTime      = 19
-	HwParamFirstInterval = HwParamSampleBits
-	HwParamLastInterval  = HwParamTickTime
-)
-
-func fmt_interval(i uint32) string {
-	switch i {
-	case HwParamSampleBits:
-		return "SampleBits"
-	case HwParamFrameBits:
-		return "FrameBits"
-	case HwParamChannels:
-		return "Channels"
-	case HwParamRate:
-		return "Rate"
-	case HwParamPeriodTime:
-		return "PeriodTime"
-	case HwParamPeriodSize:
-		return "PeriodSize"
-	case HwParamPeriodBytes:
-		return "PeriodBytes"
-	case HwParamPeriods:
-		return "Periods"
-	case HwParamBufferTime:
-		return "BufferTime"
-	case HwParamBufferSize:
-		return "BufferSize"
-	case HwParamBufferBytes:
-		return "BufferBytes"
-	case HwParamTickTime:
-		return "TickTime"
-	default:
-		return "invalid interval"
-	}
-}
-
-func fmt_iflags(f uint32) string {
-	r := ""
-	if f&0x01 != 0 {
-		r += "openmin "
-	}
-	if f&0x02 != 0 {
-		r += "openmax "
-	}
-	if f&0x04 != 0 {
-		r += "integer "
-	}
-	if f&0x08 != 0 {
-		r += "empty "
-	}
-	return strings.TrimSpace(r)
-}
-
 type Interval struct {
 	Min, Max uint32
-	Flags    uint32 // bitfield: openmin openmax integer empty
+	Flags    Flags
 }
 
 func (i Interval) String() string {
@@ -184,11 +97,11 @@ func (i Interval) String() string {
 type UframesType uint64
 type SframesType int64
 
-type HwParams struct {
+type Params struct {
 	Flags     uint32
-	Masks     [HwParamLastMask - HwParamFirstMask + 1]Mask
+	Masks     [ParamLastMask - ParamFirstMask + 1]Mask
 	_         [5]Mask
-	Intervals [HwParamLastInterval - HwParamFirstInterval + 1]Interval
+	Intervals [ParamLastInterval - ParamFirstInterval + 1]Interval
 	_         [9]Interval
 	Rmask     uint32
 	Cmask     uint32
@@ -200,21 +113,54 @@ type HwParams struct {
 	_         [64]byte
 }
 
+func (p *Params) SetInterval(param Param, min, max uint32, flags Flags) {
+	p.Intervals[param-ParamFirstInterval].Min = min
+	p.Intervals[param-ParamFirstInterval].Max = max
+	p.Intervals[param-ParamFirstInterval].Flags = flags
+}
+
 func fmt_uint(v uint32) string {
 	if v == 0 {
 		return "0"
 	}
 	if v == 0xffffffff {
-		return "λ"
+		//return "λ"
+		return "∞"
 	}
 	return fmt.Sprintf("0x%08x", v)
 }
 
-func (s *HwParams) String() string {
-	return s.Diff(&HwParams{})
+func (s *Params) String() string {
+	return s.Diff(&Params{})
 }
 
-func (s *HwParams) Diff(w *HwParams) string {
+func fmt_cmask(v uint32) string {
+
+	s := ""
+	o := v
+	for p := ParamFirstMask; p < ParamLastMask; p++ {
+		if v&(1<<p) != 0 {
+			o ^= (1 << p)
+			s += " | " + p.String()
+		}
+	}
+	for p := ParamFirstInterval; p < ParamLastInterval; p++ {
+		if v&(1<<p) != 0 {
+			o ^= (1 << p)
+			s += " | " + p.String()
+		}
+	}
+
+	if v == 0 {
+		return "0"
+	}
+	if v == 0xffffffff {
+		return "∞"
+	}
+	return fmt.Sprintf("0x%08x%s (0x%08x left)", v, s, o)
+}
+
+func (s *Params) Diff(w *Params) string {
 	r := ""
 
 	if s.Flags != w.Flags {
@@ -228,23 +174,21 @@ func (s *HwParams) Diff(w *HwParams) string {
 
 				sv := ""
 
-				for mv := range s.Masks {
-					mvv := uint32(mv + HwParamFirstMask)
-					if v&(1<<mvv) != 0 {
-						sv += " " + fmt_mask(mvv)
-						v ^= (1 << mvv)
+				for mv := ParamFirstMask; mv < ParamLastMask; mv++ {
+					if v&(1<<mv) != 0 {
+						sv += " " + mv.String()
+						//						v ^= (1<<mv)
 					}
 				}
 
-				for iv := range s.Intervals {
-					ivv := uint32(iv + HwParamFirstInterval)
-					if v&(1<<ivv) != 0 {
-						sv += " " + fmt_interval(ivv)
-						v ^= (1 << ivv)
+				for iv := ParamFirstInterval; iv < ParamLastInterval; iv++ {
+					if v&(1<<iv) != 0 {
+						sv += " " + iv.String()
+						//						v ^= (1 << iv)
 					}
 				}
 
-				r += fmt.Sprintf("  Mask %02d  bits %02d  %-12s %8s%s\n", i, j, fmt_uint(v), fmt_mask(uint32(i)), sv)
+				r += fmt.Sprintf("  Mask %d[%d]  %8s  %-12s %s\n", i, j, (Param(i) + ParamFirstMask).String(), fmt_uint(v), sv)
 			}
 		}
 	}
@@ -258,27 +202,26 @@ func (s *HwParams) Diff(w *HwParams) string {
 
 		r += fmt.Sprintf("  Interval %d\t", i)
 
-		it := fmt_interval(uint32(i + HwParamFirstInterval))
+		it := (Param(i) + ParamFirstInterval).String()
 		iv := ""
 
 		if s.Intervals[i].Min == 0 && s.Intervals[i].Max == 0xffffffff {
-			iv = "0/λ "
+			iv = "0/∞ "
 		} else {
 			iv = fmt.Sprintf("%d/%d ", s.Intervals[i].Min, s.Intervals[i].Max)
 		}
 
 		ix := ""
 		if s.Intervals[i].Flags != 0 {
-			ix = fmt_iflags(
-				s.Intervals[i].Flags)
+			ix = s.Intervals[i].Flags.String()
 		}
 		r += fmt.Sprintf("%-20s %20s %-20s\n", it, iv, ix)
 	}
 	if s.Rmask != w.Rmask {
-		r += "  Rmask  " + fmt_uint(s.Rmask) + "\n"
+		r += "  Rmask  " + fmt_cmask(s.Rmask) + "\n"
 	}
 	if s.Cmask != w.Cmask {
-		r += "  Cmask  " + fmt_uint(s.Cmask) + "\n"
+		r += "  Cmask  " + fmt_cmask(s.Cmask) + "\n"
 	}
 	if s.Msbits != w.Msbits {
 		r += "  Msbits " + fmt_uint(s.Msbits) + "\n"

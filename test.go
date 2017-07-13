@@ -16,9 +16,9 @@ import (
 //}
 
 func main() {
-	//	if err := list_the_things(); err != nil {
-	//		fmt.Println(err)
-	//	}
+	if err := list_the_things(); err != nil {
+		fmt.Println(err)
+	}
 
 	if err := boop("/dev/snd/pcmC0D0p"); err != nil {
 		fmt.Println(err)
@@ -26,7 +26,7 @@ func main() {
 
 }
 
-func refine(fd uintptr, params *HwParams, last *HwParams) error {
+func refine(fd uintptr, params *Params, last *Params) error {
 
 	fmt.Println(color.Text(color.Green))
 	fmt.Print(params.Diff(last))
@@ -63,8 +63,8 @@ func boop(path string) error {
 		return err
 	}
 
-	params := &HwParams{}
-	last := &HwParams{}
+	params := &Params{}
+	last := &Params{}
 
 	for i := range params.Masks {
 		for ii := 0; ii < 2; ii++ {
@@ -82,18 +82,17 @@ func boop(path string) error {
 
 	params.Cmask = 0
 	params.Rmask = 0xffffffff
+	params.SetInterval(ParamChannels, 2, 2, Integer)
+	params.SetInterval(ParamRate, 44100, 44100, Integer)
 
 	if err := refine(fh.Fd(), params, last); err != nil {
 		return err
 	}
 
 	params.Cmask = 0
-	//params.Rmask = 0xffffffff
-	params.Rmask = 0
-
-	params.Intervals[2].Min = 12
-	params.Intervals[2].Max = 12
-	params.Intervals[2].Flags = 0
+	params.Rmask = 0xffffffff
+	params.SetInterval(ParamBufferTime, 10, 16000, Integer)
+	//params.SetInterval(ParamPeriods, 2, 2, Integer)
 
 	if err := refine(fh.Fd(), params, last); err != nil {
 		return err
