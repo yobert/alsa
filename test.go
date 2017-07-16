@@ -80,9 +80,24 @@ func boop(path string) error {
 		return err
 	}
 
+	if !params.IntervalInRange(ParamChannels, 2) {
+		return fmt.Errorf("Stereo not available")
+	}
+
 	params.Cmask = 0
 	params.Rmask = 0xffffffff
 	params.SetInterval(ParamChannels, 2, 2, Integer)
+
+	if err := refine(fh.Fd(), params, last); err != nil {
+		return err
+	}
+
+	if !params.IntervalInRange(ParamRate, 44100) {
+		return fmt.Errorf("44100 Khz not available")
+	}
+
+	params.Cmask = 0
+	params.Rmask = 0xffffffff
 	params.SetInterval(ParamRate, 44100, 44100, Integer)
 
 	if err := refine(fh.Fd(), params, last); err != nil {
@@ -91,8 +106,7 @@ func boop(path string) error {
 
 	params.Cmask = 0
 	params.Rmask = 0xffffffff
-	params.SetInterval(ParamBufferTime, 10, 16000, Integer)
-	//params.SetInterval(ParamPeriods, 2, 2, Integer)
+	params.SetIntervalToMin(ParamBufferTime)
 
 	if err := refine(fh.Fd(), params, last); err != nil {
 		return err

@@ -50,7 +50,7 @@ func (f Flags) String() string {
 		r += "Integer "
 	}
 	if f&Empty != 0 {
-		r += "empty "
+		r += "Empty "
 	}
 	return strings.TrimSpace(r)
 }

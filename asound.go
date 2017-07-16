@@ -118,6 +118,18 @@ func (p *Params) SetInterval(param Param, min, max uint32, flags Flags) {
 	p.Intervals[param-ParamFirstInterval].Max = max
 	p.Intervals[param-ParamFirstInterval].Flags = flags
 }
+func (p *Params) SetIntervalToMin(param Param) {
+	p.Intervals[param-ParamFirstInterval].Max = p.Intervals[param-ParamFirstInterval].Min
+}
+func (p *Params) IntervalInRange(param Param, v uint32) bool {
+	if p.Intervals[param-ParamFirstInterval].Min > v {
+		return false
+	}
+	if p.Intervals[param-ParamFirstInterval].Max < v {
+		return false
+	}
+	return true
+}
 
 func fmt_uint(v uint32) string {
 	if v == 0 {
