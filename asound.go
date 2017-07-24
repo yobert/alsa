@@ -13,6 +13,8 @@ const (
 	CmdPCMTimestamp         uintptr = 0x4102
 	CmdPCMTimestampType     uintptr = 0x4103
 	CmdPCMHwRefine          uintptr = 0x4110
+	CmdPCMHwParams          uintptr = 0x4111
+	CmdPCMSwParams          uintptr = 0x4113
 	CmdControlVersion       uintptr = 0x5500
 	CmdControlCardInfo      uintptr = 0x5501
 	CmdControlPCMNextDevice uintptr = 0x5530
@@ -24,6 +26,13 @@ const (
 	PCMTimestampTypeMonotonic
 	PCMTimestampTypeMonotonicRaw
 	PCMTimestampTypeLast
+)
+
+const (
+	MapShared     = 0x00000001
+	OffsetData    = 0x00000000
+	OffsetStatus  = 0x80000000
+	OffsetControl = 0x81000000
 )
 
 type CardInfo struct {
@@ -54,7 +63,7 @@ func (v PVersion) Patch() int {
 	return int(v & 0xff)
 }
 func (v PVersion) String() string {
-	return fmt.Sprintf("Protocol %d.%d.%d", v.Major(), v.Minor(), v.Patch())
+	return fmt.Sprintf("Protocol %d.%d.%d (%d)", v.Major(), v.Minor(), v.Patch(), uint32(v))
 }
 
 type PCMInfo struct {

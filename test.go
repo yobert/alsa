@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"color"
+	"github.com/edsrzf/mmap-go"
 )
 
 // _, _, errnop := syscall.Syscall(syscall.SYS_IOCTL, uintptr(file.Fd()), uintptr(TUNSETIFF), uintptr(unsafe.Pointer(&ifr)))
@@ -24,24 +24,6 @@ func main() {
 		fmt.Println(err)
 	}
 
-}
-
-func refine(fd uintptr, params *Params, last *Params) error {
-
-	fmt.Println(color.Text(color.Green))
-	fmt.Print(params.Diff(last))
-	*last = *params
-
-	err := ioctl(fd, ioctl_encode(CmdRead|CmdWrite, 608, CmdPCMHwRefine), params)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(color.Text(color.Magenta))
-	fmt.Print(params.Diff(last))
-	*last = *params
-
-	return nil
 }
 
 func boop(path string) error {
@@ -104,13 +86,55 @@ func boop(path string) error {
 		return err
 	}
 
-	params.Cmask = 0
-	params.Rmask = 0xffffffff
-	params.SetIntervalToMin(ParamBufferTime)
+	//	params.Cmask = 0
+	//	params.Rmask = 0xffffffff
+	//	params.SetIntervalToMin(ParamBufferTime)
+	//	if err := refine(fh.Fd(), params, last); err != nil {
+	//		return err
+	//	}
 
-	if err := refine(fh.Fd(), params, last); err != nil {
+	if err := hw_params(fh.Fd(), params, last); err != nil {
 		return err
 	}
+
+	swparams := &SwParams{}
+	swlast := &SwParams{}
+
+	swparams.PeriodStep = 1
+	swparams.AvailMin = 1024
+	swparams.XferAlign = 1
+	swparams.StartThreshold = 1
+	swparams.StopThreshold = 16384
+	swparams.Proto = pv
+	swparams.TstampType = 1
+
+	if err := sw_params(fh.Fd(), swparams, swlast); err != nil {
+		return err
+	}
+
+	buf_bytes := int(params.Intervals[ParamBufferBytes-ParamFirstInterval].Max)
+
+	fmt.Printf("trying to mmap %d bytes\n", buf_bytes)
+
+	m_data, err := mmap.MapRegion(fh, buf_bytes, mmap.RDWR, MapShared, OffsetData)
+	if err != nil {
+		return err
+	}
+	defer m_data.Unmap()
+
+	m_status, err := mmap.MapRegion(fh, 4096, mmap.RDONLY, MapShared, OffsetStatus)
+	if err != nil {
+		return err
+	}
+	defer m_status.Unmap()
+
+	m_control, err := mmap.MapRegion(fh, 4096, mmap.RDWR, MapShared, OffsetControl)
+	if err != nil {
+		return err
+	}
+	defer m_control.Unmap()
+
+	fmt.Println("Success!!!")
 
 	return nil
 }

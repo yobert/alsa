@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"strings"
+
+	"color"
 )
 
 type Param uint32
@@ -106,4 +109,40 @@ func (p Param) name() string {
 	default:
 		return "Invalid"
 	}
+}
+
+func refine(fd uintptr, params *Params, last *Params) error {
+
+	fmt.Println(color.Text(color.Green))
+	fmt.Print(params.Diff(last))
+	*last = *params
+
+	err := ioctl(fd, ioctl_encode(CmdRead|CmdWrite, 608, CmdPCMHwRefine), params)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(color.Text(color.Magenta))
+	fmt.Print(params.Diff(last))
+	*last = *params
+
+	return nil
+}
+
+func hw_params(fd uintptr, params *Params, last *Params) error {
+
+	fmt.Println(color.Text(color.Green))
+	fmt.Print(params.Diff(last))
+	*last = *params
+
+	err := ioctl(fd, ioctl_encode(CmdRead|CmdWrite, 608, CmdPCMHwParams), params)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(color.Text(color.Magenta))
+	fmt.Print(params.Diff(last))
+	*last = *params
+
+	return nil
 }
