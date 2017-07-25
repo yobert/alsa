@@ -39,6 +39,7 @@ func sw_params(fd uintptr, params *SwParams, last *SwParams) error {
 
 	fmt.Println(color.Text(color.Magenta))
 	fmt.Print(params.Diff(last))
+	fmt.Print(color.Reset())
 	*last = *params
 
 	return nil
@@ -101,7 +102,7 @@ func (s *SwParams) Diff(w *SwParams) string {
 			d = v1v.Type().Kind().String()
 		}
 		if d != "" {
-			r += field.Name + "\t" + d + "\n"
+			r += fmt.Sprintf("%20s %s\n", field.Name, d)
 		}
 	}
 

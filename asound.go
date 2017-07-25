@@ -83,7 +83,20 @@ type PCMInfo struct {
 }
 
 func (s PCMInfo) String() string {
-	return fmt.Sprintf("PCM device %d sub %d stream %d card %d %#v (%d / %d) cls %d subcls %d", s.Device, s.Subdevice, s.Stream, s.Card, gstr(s.Name[:]), s.SubdevicesCount, s.SubdevicesAvail, s.DevClass, s.DevSubclass)
+	r := fmt.Sprintf("PCM %d/%d/%d ", s.Card, s.Device, s.Subdevice)
+	switch s.Stream {
+	case 0:
+		r += "play"
+	case 1:
+		r += "capt"
+	default:
+		r += fmt.Sprintf("unknown stream direction (%d)", s.Stream)
+	}
+	r += fmt.Sprintf(" %#v", gstr(s.Name[:]))
+	if s.SubdevicesCount != 1 || s.SubdevicesAvail != 1 || s.DevClass != 0 || s.DevSubclass != 0 {
+		r += fmt.Sprintf(" (%d / %d) cls %d subcls %d", s.SubdevicesCount, s.SubdevicesAvail, s.DevClass, s.DevSubclass)
+	}
+	return r
 }
 
 const (

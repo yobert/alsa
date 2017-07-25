@@ -124,6 +124,7 @@ func refine(fd uintptr, params *Params, last *Params) error {
 
 	fmt.Println(color.Text(color.Magenta))
 	fmt.Print(params.Diff(last))
+	fmt.Print(color.Reset())
 	*last = *params
 
 	return nil
@@ -142,6 +143,7 @@ func hw_params(fd uintptr, params *Params, last *Params) error {
 
 	fmt.Println(color.Text(color.Magenta))
 	fmt.Print(params.Diff(last))
+	fmt.Print(color.Reset())
 	*last = *params
 
 	return nil

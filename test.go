@@ -21,6 +21,7 @@ func main() {
 	}
 
 	if err := boop("/dev/snd/pcmC0D0p"); err != nil {
+		//if err := boop("/dev/snd/pcmC2D0p"); err != nil {
 		fmt.Println(err)
 	}
 
@@ -74,13 +75,15 @@ func boop(path string) error {
 		return err
 	}
 
-	if !params.IntervalInRange(ParamRate, 44100) {
-		return fmt.Errorf("44100 Khz not available")
+	rate := uint32(44100)
+
+	if !params.IntervalInRange(ParamRate, rate) {
+		return fmt.Errorf("%d Khz not available", rate)
 	}
 
 	params.Cmask = 0
 	params.Rmask = 0xffffffff
-	params.SetInterval(ParamRate, 44100, 44100, Integer)
+	params.SetInterval(ParamRate, rate, rate, Integer)
 
 	if err := refine(fh.Fd(), params, last); err != nil {
 		return err
@@ -114,8 +117,6 @@ func boop(path string) error {
 
 	buf_bytes := int(params.Intervals[ParamBufferBytes-ParamFirstInterval].Max)
 
-	fmt.Printf("trying to mmap %d bytes\n", buf_bytes)
-
 	m_data, err := mmap.MapRegion(fh, buf_bytes, mmap.RDWR, MapShared, OffsetData)
 	if err != nil {
 		return err
@@ -134,7 +135,7 @@ func boop(path string) error {
 	}
 	defer m_control.Unmap()
 
-	fmt.Println("Success!!!")
+	fmt.Printf("Successfully mmapped %d bytes\n", buf_bytes)
 
 	return nil
 }
@@ -178,15 +179,18 @@ func list_the_things() error {
 				break
 			}
 
-			var pi PCMInfo
-			pi.Device = uint32(next)
-			pi.Subdevice = 0
-			err = ioctl(fh.Fd(), ioctl_encode(CmdRead|CmdWrite, 288, CmdControlPCMInfo), &pi)
-			if err != nil {
-				//return err
-				//fmt.Println(err)
-			} else {
-				fmt.Println(pi)
+			for stream := int32(0); stream < 2; stream++ {
+				var pi PCMInfo
+				pi.Device = uint32(next)
+				pi.Subdevice = 0
+				pi.Stream = stream
+				err = ioctl(fh.Fd(), ioctl_encode(CmdRead|CmdWrite, 288, CmdControlPCMInfo), &pi)
+				if err != nil {
+					//return err
+					//fmt.Println(err)
+				} else {
+					fmt.Println(pi)
+				}
 			}
 		}
 
