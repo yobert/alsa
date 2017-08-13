@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/edsrzf/mmap-go"
+	//"github.com/edsrzf/mmap-go"
 )
 
 // _, _, errnop := syscall.Syscall(syscall.SYS_IOCTL, uintptr(file.Fd()), uintptr(TUNSETIFF), uintptr(unsafe.Pointer(&ifr)))
@@ -89,6 +89,11 @@ func boop(path string) error {
 		return err
 	}
 
+	params.Cmask = 0
+	params.Rmask = 0xffffffff
+	//params.SetMask(ParamAccess, 
+	// WIP
+
 	//	params.Cmask = 0
 	//	params.Rmask = 0xffffffff
 	//	params.SetIntervalToMin(ParamBufferTime)
@@ -115,7 +120,7 @@ func boop(path string) error {
 		return err
 	}
 
-	buf_bytes := int(params.Intervals[ParamBufferBytes-ParamFirstInterval].Max)
+/*	buf_bytes := int(params.Intervals[ParamBufferBytes-ParamFirstInterval].Max)
 
 	m_data, err := mmap.MapRegion(fh, buf_bytes, mmap.RDWR, MapShared, OffsetData)
 	if err != nil {
@@ -135,7 +140,7 @@ func boop(path string) error {
 	}
 	defer m_control.Unmap()
 
-	fmt.Printf("Successfully mmapped %d bytes\n", buf_bytes)
+	fmt.Printf("Successfully mmapped %d bytes\n", buf_bytes)*/
 
 	return nil
 }

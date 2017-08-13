@@ -12,9 +12,9 @@ type Param uint32
 const (
 	ParamAccess    Param = 0
 	ParamFormat    Param = 1
-	ParamSubFormat Param = 2
+	ParamSubformat Param = 2
 	ParamFirstMask Param = ParamAccess
-	ParamLastMask  Param = ParamSubFormat
+	ParamLastMask  Param = ParamSubformat
 
 	ParamSampleBits    Param = 8
 	ParamFrameBits     Param = 9
@@ -79,7 +79,7 @@ func (p Param) name() string {
 		return "Access"
 	case ParamFormat:
 		return "Format"
-	case ParamSubFormat:
+	case ParamSubformat:
 		return "Subfmt"
 
 	case ParamSampleBits:

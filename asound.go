@@ -35,6 +35,179 @@ const (
 	OffsetControl = 0x81000000
 )
 
+type StreamState int32
+
+const (
+	Open StreamState = iota
+	Setup
+	Prepared
+	Running
+	Xrun
+	Draining
+	Paused
+	Suspended
+	Disconnected
+)
+const LastStreamState StreamState = Disconnected
+
+func (s StreamState) String() string {
+	switch s {
+	case Open:
+		return "Open"
+	case Setup:
+		return "Setup"
+	case Prepared:
+		return "Prepared"
+	case Running:
+		return "Running"
+	case Xrun:
+		return "Xrun"
+	case Draining:
+		return "Draining"
+	case Paused:
+		return "Paused"
+	case Suspended:
+		return "Suspended"
+	case Disconnected:
+		return "Disconnected"
+	default:
+		return fmt.Sprintf("Invalid Stream State (%d)", s)
+	}
+}
+
+type AccessType int
+
+const (
+	MmapInterleaved AccessType = iota
+	MmapNonInterleaved
+	MmapComplex
+	RWInterleaved
+	RWNonInterleaved
+	AccessTypeLast = RWNonInterleaved
+	AccessTypeFirst = MmapInterleaved
+)
+
+func (a AccessType) String() string {
+	switch a {
+	case MmapInterleaved:
+		return "MmapInterleaved"
+	case MmapNonInterleaved:
+		return "MmapNonInterleaved"
+	case MmapComplex:
+		return "MmapComplex"
+	case RWInterleaved:
+		return "RWInterleaved"
+	case RWNonInterleaved:
+		return "RWNonInterleaved"
+	default:
+		return fmt.Sprintf("Invalid AccessType (%d)", a)
+	}
+}
+
+type FormatType int
+
+const (
+	Unknown FormatType = -1
+	S8      FormatType = iota
+	U8
+	S16_LE
+	S16_BE
+	U16_LE
+	U16_BE
+	S24_LE
+	S24_BE
+	U24_LE
+	U24_BE
+	S32_LE
+	S32_BE
+	U32_LE
+	U32_BE
+	FLOAT_LE
+	FLOAT_BE
+	FLOAT64_LE
+	FLOAT64_BE
+	// There are so many more...
+	FormatTypeLast = FLOAT64_BE
+	FormatTypeFirst = S8
+)
+
+func (f FormatType) String() string {
+	switch f {
+	case S8:
+		return "S8"
+	case U8:
+		return "U8"
+	case S16_LE:
+		return "S16_LE"
+	case S16_BE:
+		return "S16_BE"
+	case U16_LE:
+		return "U16_LE"
+	case U16_BE:
+		return "U16_BE"
+	case S24_LE:
+		return "S24_LE"
+	case S24_BE:
+		return "S24_BE"
+	case U24_LE:
+		return "U24_LE"
+	case U24_BE:
+		return "U24_BE"
+	case S32_LE:
+		return "S32_LE"
+	case S32_BE:
+		return "S32_BE"
+	case U32_LE:
+		return "U32_LE"
+	case U32_BE:
+		return "U32_BE"
+	case FLOAT_LE:
+		return "FLOAT_LE"
+	case FLOAT_BE:
+		return "FLOAT_BE"
+	case FLOAT64_LE:
+		return "FLOAT64_LE"
+	case FLOAT64_BE:
+		return "FLOAT64_BE"
+	default:
+		return fmt.Sprintf("Invalid FormatType (%d)", f)
+	}
+}
+
+type SubformatType int
+
+const (
+	StandardSubformat SubformatType = iota
+	SubformatTypeFirst = StandardSubformat
+	SubformatTypeLast = StandardSubformat
+)
+func (f SubformatType) String() string {
+	switch f {
+	case StandardSubformat:
+		return "StandardSubformat"
+	default:
+		return fmt.Sprintf("Invalid SubformatType (%d)", f)
+	}
+}
+
+type TimeSpec struct {
+	Sec  int
+	Nsec int
+}
+
+type MmapStatus struct {
+	State          StreamState
+	Pad1           int32
+	HWPtr          uint
+	Tstamp         TimeSpec
+	SuspendedState StreamState
+	AudioTstamp    TimeSpec
+}
+type MmapControl struct {
+	ApplPtr  uint
+	AvailMin uint
+}
+
 type CardInfo struct {
 	Card       int32
 	_          int32
@@ -208,7 +381,7 @@ func (s *Params) Diff(w *Params) string {
 
 				sv := ""
 
-				for mv := ParamFirstMask; mv < ParamLastMask; mv++ {
+/*				for mv := ParamFirstMask; mv < ParamLastMask; mv++ {
 					if v&(1<<mv) != 0 {
 						sv += " " + mv.String()
 						//						v ^= (1<<mv)
@@ -219,6 +392,37 @@ func (s *Params) Diff(w *Params) string {
 					if v&(1<<iv) != 0 {
 						sv += " " + iv.String()
 						//						v ^= (1 << iv)
+					}
+				}*/
+
+				if Param(i) + ParamFirstMask == ParamAccess {
+					for a := AccessTypeFirst; a <= AccessTypeLast; a++ {
+						if v & (1 << uint(a)) != 0 {
+							sv += " " + a.String()
+							if v != 0xffffffff {
+								v ^= (1 << uint(a))
+							}
+						}
+					}
+				}
+				if Param(i) + ParamFirstMask == ParamFormat {
+					for a := FormatTypeFirst; a <= FormatTypeLast; a++ {
+						if v & (1 << uint(a)) != 0 {
+							sv += " " + a.String()
+							if v != 0xffffffff {
+								v ^= (1 << uint(a))
+							}
+						}
+					}
+				}
+				if Param(i) + ParamFirstMask == ParamSubformat {
+					for a := SubformatTypeFirst; a <= SubformatTypeLast; a++ {
+						if v & (1 << uint(a)) != 0 {
+							sv += " " + a.String()
+							if v != 0xffffffff {
+								v ^= (1 << uint(a))
+							}
+						}
 					}
 				}
 
