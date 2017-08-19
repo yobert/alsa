@@ -1,10 +1,15 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
+	"math"
 	"os"
-
+	"time"
+	"unsafe"
 	//"github.com/edsrzf/mmap-go"
+	"github.com/yobert/alsa/pcm"
 )
 
 // _, _, errnop := syscall.Syscall(syscall.SYS_IOCTL, uintptr(file.Fd()), uintptr(TUNSETIFF), uintptr(unsafe.Pointer(&ifr)))
@@ -28,7 +33,7 @@ func main() {
 }
 
 func boop(path string) error {
-	fh, err := os.Open(path)
+	fh, err := os.OpenFile(path, os.O_RDWR, 0755)
 	if err != nil {
 		return err
 	}
@@ -91,8 +96,13 @@ func boop(path string) error {
 
 	params.Cmask = 0
 	params.Rmask = 0xffffffff
-	//params.SetMask(ParamAccess, 
-	// WIP
+	params.SetAccess(RWInterleaved)
+	params.SetFormat(U24_BE)
+	//params.SetFormat(U8)
+
+	if err := refine(fh.Fd(), params, last); err != nil {
+		return err
+	}
 
 	//	params.Cmask = 0
 	//	params.Rmask = 0xffffffff
@@ -120,27 +130,69 @@ func boop(path string) error {
 		return err
 	}
 
-/*	buf_bytes := int(params.Intervals[ParamBufferBytes-ParamFirstInterval].Max)
+	if err := get_status(fh.Fd()); err != nil {
+		return err
+	}
+	if err := ioctl(fh.Fd(), ioctl_encode(0, 0, CmdPCMPrepare), nil); err != nil {
+		return err
+	}
+	if err := get_status(fh.Fd()); err != nil {
+		return err
+	}
 
-	m_data, err := mmap.MapRegion(fh, buf_bytes, mmap.RDWR, MapShared, OffsetData)
+	/*	if err := ioctl(fh.Fd(), ioctl_encode(0, 0, CmdPCMStart), nil); err != nil {
+			return err
+		}
+		if err := get_status(fh.Fd()); err != nil {
+			return err
+		}*/
+
+	buf_size := int(params.Intervals[ParamBufferSize-ParamFirstInterval].Max)
+
+	buf_bytes := int(params.Intervals[ParamBufferBytes-ParamFirstInterval].Max)
+	buf := bytes.NewBuffer(make([]byte, 0, buf_bytes))
+
+	fmt.Println("buf", buf_bytes, "/", buf_size, "frames")
+	fmt.Println("rate", rate)
+
+	t := 0.0
+
+	xfer := pcm.XferI{}
+
+	for i := 0; i < buf_size; i++ {
+
+		v := math.Sin(t * 2 * math.Pi * 440)
+		//v += math.Sin(t * 2 * math.Pi * 261.63)
+		//v += math.Sin(t * 2 * math.Pi * 349.23)
+		v *= 0.1
+
+		//buf[i] = uint8((v*0.5+0.5)*255)
+		sample := uint32((v*0.5 + 0.5) * 16777215)
+
+		binary.Write(buf, binary.BigEndian, sample)
+		binary.Write(buf, binary.BigEndian, sample)
+
+		t += 1.0 / float64(rate)
+
+		xfer.Frames++
+	}
+
+	xfer.Buf = uintptr(unsafe.Pointer(&buf.Bytes()[0]))
+
+	if err := get_status(fh.Fd()); err != nil {
+		return err
+	}
+	err = ioctl(fh.Fd(), ioctl_encode(CmdWrite, pcm.XferISize, CmdPCMWriteIFrames), &xfer)
 	if err != nil {
 		return err
 	}
-	defer m_data.Unmap()
-
-	m_status, err := mmap.MapRegion(fh, 4096, mmap.RDONLY, MapShared, OffsetStatus)
-	if err != nil {
-		return err
+	fmt.Println("xfer complete")
+	for i := 0; i < 10; i++ {
+		if err := get_status(fh.Fd()); err != nil {
+			return err
+		}
+		time.Sleep(time.Millisecond * 100)
 	}
-	defer m_status.Unmap()
-
-	m_control, err := mmap.MapRegion(fh, 4096, mmap.RDWR, MapShared, OffsetControl)
-	if err != nil {
-		return err
-	}
-	defer m_control.Unmap()
-
-	fmt.Printf("Successfully mmapped %d bytes\n", buf_bytes)*/
 
 	return nil
 }

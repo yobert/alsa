@@ -23,8 +23,12 @@ func (c ioctl_e) String() string {
 }
 
 func ioctl(fd uintptr, c ioctl_e, ptr interface{}) error {
-	v := reflect.ValueOf(ptr)
-	p := v.Pointer()
+	var p uintptr
+
+	if ptr != nil {
+		v := reflect.ValueOf(ptr)
+		p = v.Pointer()
+	}
 
 	//fmt.Printf("%s :: %d bytes\n", c, reflect.TypeOf(ptr).Elem().Size())
 	_, _, e := syscall.Syscall(syscall.SYS_IOCTL, fd, uintptr(c), p)

@@ -2,19 +2,43 @@ package main
 
 import (
 	"fmt"
+
+	"github.com/yobert/alsa/misc"
+	"github.com/yobert/alsa/pcm/state"
 )
 
 const (
 	CmdWrite = 1
 	CmdRead  = 2
 
-	CmdPCMInfo              uintptr = 0x4101
-	CmdPCMVersion           uintptr = 0x4100
-	CmdPCMTimestamp         uintptr = 0x4102
-	CmdPCMTimestampType     uintptr = 0x4103
-	CmdPCMHwRefine          uintptr = 0x4110
-	CmdPCMHwParams          uintptr = 0x4111
-	CmdPCMSwParams          uintptr = 0x4113
+	CmdPCMInfo          uintptr = 0x4101
+	CmdPCMVersion       uintptr = 0x4100
+	CmdPCMTimestamp     uintptr = 0x4102
+	CmdPCMTimestampType uintptr = 0x4103
+	CmdPCMHwRefine      uintptr = 0x4110
+	CmdPCMHwParams      uintptr = 0x4111
+	CmdPCMSwParams      uintptr = 0x4113
+	CmdPCMStatus        uintptr = 0x4120
+
+	CmdPCMPrepare uintptr = 0x4140
+	CmdPCMReset   uintptr = 0x4141
+	CmdPCMStart   uintptr = 0x4142
+	CmdPCMDrop    uintptr = 0x4143
+	CmdPCMDrain   uintptr = 0x4144
+	CmdPCMPause   uintptr = 0x4145 // int
+	CmdPCMRewind  uintptr = 0x4146 // snd_pcm_uframes_t
+	CmdPCMResume  uintptr = 0x4147
+	CmdPCMXrun    uintptr = 0x4148
+	CmdPCMForward uintptr = 0x4149
+
+	CmdPCMWriteIFrames uintptr = 0x4150 // snd_xferi
+	CmdPCMReadIFrames  uintptr = 0x4151 // snd_xferi
+	CmdPCMWriteNFrames uintptr = 0x4152 // snd_xfern
+	CmdPCMReadNFrames  uintptr = 0x4153 // snd_xfern
+
+	CmdPCMLink   uintptr = 0x4160 // int
+	CmdPCMUnlink uintptr = 0x4161
+
 	CmdControlVersion       uintptr = 0x5500
 	CmdControlCardInfo      uintptr = 0x5501
 	CmdControlPCMNextDevice uintptr = 0x5530
@@ -35,46 +59,6 @@ const (
 	OffsetControl = 0x81000000
 )
 
-type StreamState int32
-
-const (
-	Open StreamState = iota
-	Setup
-	Prepared
-	Running
-	Xrun
-	Draining
-	Paused
-	Suspended
-	Disconnected
-)
-const LastStreamState StreamState = Disconnected
-
-func (s StreamState) String() string {
-	switch s {
-	case Open:
-		return "Open"
-	case Setup:
-		return "Setup"
-	case Prepared:
-		return "Prepared"
-	case Running:
-		return "Running"
-	case Xrun:
-		return "Xrun"
-	case Draining:
-		return "Draining"
-	case Paused:
-		return "Paused"
-	case Suspended:
-		return "Suspended"
-	case Disconnected:
-		return "Disconnected"
-	default:
-		return fmt.Sprintf("Invalid Stream State (%d)", s)
-	}
-}
-
 type AccessType int
 
 const (
@@ -83,7 +67,7 @@ const (
 	MmapComplex
 	RWInterleaved
 	RWNonInterleaved
-	AccessTypeLast = RWNonInterleaved
+	AccessTypeLast  = RWNonInterleaved
 	AccessTypeFirst = MmapInterleaved
 )
 
@@ -127,7 +111,7 @@ const (
 	FLOAT64_LE
 	FLOAT64_BE
 	// There are so many more...
-	FormatTypeLast = FLOAT64_BE
+	FormatTypeLast  = FLOAT64_BE
 	FormatTypeFirst = S8
 )
 
@@ -177,10 +161,11 @@ func (f FormatType) String() string {
 type SubformatType int
 
 const (
-	StandardSubformat SubformatType = iota
-	SubformatTypeFirst = StandardSubformat
-	SubformatTypeLast = StandardSubformat
+	StandardSubformat  SubformatType = iota
+	SubformatTypeFirst               = StandardSubformat
+	SubformatTypeLast                = StandardSubformat
 )
+
 func (f SubformatType) String() string {
 	switch f {
 	case StandardSubformat:
@@ -190,18 +175,13 @@ func (f SubformatType) String() string {
 	}
 }
 
-type TimeSpec struct {
-	Sec  int
-	Nsec int
-}
-
 type MmapStatus struct {
-	State          StreamState
+	State          state.State
 	Pad1           int32
 	HWPtr          uint
-	Tstamp         TimeSpec
-	SuspendedState StreamState
-	AudioTstamp    TimeSpec
+	Tstamp         misc.Timespec
+	SuspendedState state.State
+	AudioTstamp    misc.Timespec
 }
 type MmapControl struct {
 	ApplPtr  uint
@@ -289,9 +269,6 @@ func (i Interval) String() string {
 	return fmt.Sprintf("Interval(%d/%d 0x%x)", i.Min, i.Max, i.Flags)
 }
 
-type UframesType uint64
-type SframesType int64
-
 type Params struct {
 	Flags     uint32
 	Masks     [ParamLastMask - ParamFirstMask + 1]Mask
@@ -304,8 +281,18 @@ type Params struct {
 	Msbits    uint32
 	RateNum   uint32
 	RateDen   uint32
-	FifoSize  UframesType
+	FifoSize  misc.Uframes
 	_         [64]byte
+}
+
+func (p *Params) SetAccess(a AccessType) {
+	p.SetMask(ParamAccess, uint32(1<<uint(a)))
+}
+func (p *Params) SetFormat(f FormatType) {
+	p.SetMask(ParamFormat, uint32(1<<uint(f)))
+}
+func (p *Params) SetMask(param Param, v uint32) {
+	p.Masks[param-ParamFirstMask].Bits[0] = v
 }
 
 func (p *Params) SetInterval(param Param, min, max uint32, flags Flags) {
@@ -381,23 +368,23 @@ func (s *Params) Diff(w *Params) string {
 
 				sv := ""
 
-/*				for mv := ParamFirstMask; mv < ParamLastMask; mv++ {
-					if v&(1<<mv) != 0 {
-						sv += " " + mv.String()
-						//						v ^= (1<<mv)
-					}
-				}
+				/*				for mv := ParamFirstMask; mv < ParamLastMask; mv++ {
+									if v&(1<<mv) != 0 {
+										sv += " " + mv.String()
+										//						v ^= (1<<mv)
+									}
+								}
 
-				for iv := ParamFirstInterval; iv < ParamLastInterval; iv++ {
-					if v&(1<<iv) != 0 {
-						sv += " " + iv.String()
-						//						v ^= (1 << iv)
-					}
-				}*/
+								for iv := ParamFirstInterval; iv < ParamLastInterval; iv++ {
+									if v&(1<<iv) != 0 {
+										sv += " " + iv.String()
+										//						v ^= (1 << iv)
+									}
+								}*/
 
-				if Param(i) + ParamFirstMask == ParamAccess {
+				if Param(i)+ParamFirstMask == ParamAccess {
 					for a := AccessTypeFirst; a <= AccessTypeLast; a++ {
-						if v & (1 << uint(a)) != 0 {
+						if v&(1<<uint(a)) != 0 {
 							sv += " " + a.String()
 							if v != 0xffffffff {
 								v ^= (1 << uint(a))
@@ -405,9 +392,9 @@ func (s *Params) Diff(w *Params) string {
 						}
 					}
 				}
-				if Param(i) + ParamFirstMask == ParamFormat {
+				if Param(i)+ParamFirstMask == ParamFormat {
 					for a := FormatTypeFirst; a <= FormatTypeLast; a++ {
-						if v & (1 << uint(a)) != 0 {
+						if v&(1<<uint(a)) != 0 {
 							sv += " " + a.String()
 							if v != 0xffffffff {
 								v ^= (1 << uint(a))
@@ -415,9 +402,9 @@ func (s *Params) Diff(w *Params) string {
 						}
 					}
 				}
-				if Param(i) + ParamFirstMask == ParamSubformat {
+				if Param(i)+ParamFirstMask == ParamSubformat {
 					for a := SubformatTypeFirst; a <= SubformatTypeLast; a++ {
-						if v & (1 << uint(a)) != 0 {
+						if v&(1<<uint(a)) != 0 {
 							sv += " " + a.String()
 							if v != 0xffffffff {
 								v ^= (1 << uint(a))

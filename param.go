@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"color"
+
+	"github.com/yobert/alsa/pcm"
 )
 
 type Param uint32
@@ -146,5 +148,15 @@ func hw_params(fd uintptr, params *Params, last *Params) error {
 	fmt.Print(color.Reset())
 	*last = *params
 
+	return nil
+}
+
+func get_status(fd uintptr) error {
+	var status pcm.Status
+	err := ioctl(fd, ioctl_encode(CmdRead, pcm.StatusSize, CmdPCMStatus), &status)
+	if err != nil {
+		return err
+	}
+	fmt.Println(status)
 	return nil
 }
