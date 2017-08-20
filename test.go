@@ -34,6 +34,7 @@ func main() {
 }
 
 func boop(path string) error {
+
 	fh, err := os.OpenFile(path, os.O_RDWR, 0755)
 	if err != nil {
 		return err
@@ -112,8 +113,7 @@ func boop(path string) error {
 	params.Cmask = 0
 	params.Rmask = 0xffffffff
 	params.SetAccess(RWInterleaved)
-	//params.SetFormat(U24_BE)
-	params.SetFormat(U8)
+	params.SetFormat(S32_LE)
 
 	if err := refine(fh.Fd(), params, last); err != nil {
 		return err
@@ -190,24 +190,24 @@ func boop(path string) error {
 		for i := 0; i < amt; i++ {
 
 			v := math.Sin(t * 2 * math.Pi * 440)
-			//v += math.Sin(t * 2 * math.Pi * 261.63)
-			//v += math.Sin(t * 2 * math.Pi * 349.23)
+			v += math.Sin(t * 2 * math.Pi * 261.63)
+			v += math.Sin(t * 2 * math.Pi * 349.23)
 			v *= 0.1
 
-			sample := uint8((v*0.5 + 0.5) * 255)
+			//v *= 0.5
+			//v += 0.5
+
+			//sample := uint8(v * 255)
+			sample := int32(v * ((1 << 32) - 1))
 
 			// U24_BE is lower 3 bytes of a 4 byte word
 			// 16777215 is max value of a 24 bit uint
-			//sample := uint32((v*0.5 + 0.5) * 16777215)
+			//sample := uint32(v * 16777215)
 
-			binary.Write(buf, binary.BigEndian, sample)
-			binary.Write(buf, binary.BigEndian, sample)
-			//binary.Write(buf, binary.BigEndian, sample)
-			//binary.Write(buf, binary.BigEndian, sample)
-			//binary.Write(buf, binary.BigEndian, sample)
+			binary.Write(buf, binary.LittleEndian, sample)
+			binary.Write(buf, binary.LittleEndian, sample)
 
 			t += (1.0 / float64(rate))
-
 		}
 
 		err = ioctl(fh.Fd(), ioctl_encode(CmdWrite, pcm.XferISize, CmdPCMWriteIFrames), &pcm.XferI{
@@ -217,7 +217,6 @@ func boop(path string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println("xfer")
 		//fmt.Println("xfer", xfer.Frames, xfer.Result)
 		//time.Sleep(time.Millisecond * 10)
 		_ = time.Sleep

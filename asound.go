@@ -92,16 +92,18 @@ type FormatType int
 
 const (
 	Unknown FormatType = -1
-	S8      FormatType = iota
-	U8
-	S16_LE
-	S16_BE
-	U16_LE
-	U16_BE
-	S24_LE
-	S24_BE
-	U24_LE
-	U24_BE
+)
+const (
+	S8     FormatType = iota // 0
+	U8                       // 1
+	S16_LE                   // 2
+	S16_BE                   // 3
+	U16_LE                   // 4
+	U16_BE                   // 5
+	S24_LE                   // 6
+	S24_BE                   // 7
+	U24_LE                   // 8
+	U24_BE                   // 9
 	S32_LE
 	S32_BE
 	U32_LE
