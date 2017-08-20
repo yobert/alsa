@@ -9,6 +9,7 @@ import (
 	"time"
 	"unsafe"
 	//"github.com/edsrzf/mmap-go"
+	"github.com/yobert/alsa/misc"
 	"github.com/yobert/alsa/pcm"
 )
 
@@ -83,7 +84,7 @@ func boop(path string) error {
 	rate := uint32(44100)
 
 	if !params.IntervalInRange(ParamRate, rate) {
-		return fmt.Errorf("%d Khz not available", rate)
+		return fmt.Errorf("%d hz not available", rate)
 	}
 
 	params.Cmask = 0
@@ -94,11 +95,25 @@ func boop(path string) error {
 		return err
 	}
 
+	// buffer time?
+	max_buf_time := uint32(params.Intervals[ParamBufferTime-ParamFirstInterval].Max)
+	min_buf_time := uint32(1000 * 1000)
+	if min_buf_time > max_buf_time {
+		min_buf_time = max_buf_time / 2
+	}
+	params.Cmask = 0
+	params.Rmask = 0xffffffff
+	params.SetInterval(ParamBufferTime, min_buf_time, max_buf_time, OpenMin|OpenMax)
+
+	if err := refine(fh.Fd(), params, last); err != nil {
+		return err
+	}
+
 	params.Cmask = 0
 	params.Rmask = 0xffffffff
 	params.SetAccess(RWInterleaved)
-	params.SetFormat(U24_BE)
-	//params.SetFormat(U8)
+	//params.SetFormat(U24_BE)
+	params.SetFormat(U8)
 
 	if err := refine(fh.Fd(), params, last); err != nil {
 		return err
@@ -121,7 +136,8 @@ func boop(path string) error {
 	swparams.PeriodStep = 1
 	swparams.AvailMin = 1024
 	swparams.XferAlign = 1
-	swparams.StartThreshold = 1
+	//swparams.StartThreshold = 1024
+	swparams.StartThreshold = 100
 	swparams.StopThreshold = 16384
 	swparams.Proto = pv
 	swparams.TstampType = 1
@@ -150,48 +166,61 @@ func boop(path string) error {
 	buf_size := int(params.Intervals[ParamBufferSize-ParamFirstInterval].Max)
 
 	buf_bytes := int(params.Intervals[ParamBufferBytes-ParamFirstInterval].Max)
-	buf := bytes.NewBuffer(make([]byte, 0, buf_bytes))
 
 	fmt.Println("buf", buf_bytes, "/", buf_size, "frames")
 	fmt.Println("rate", rate)
 
+	/*	go func() {
+		for {
+			if err := get_status(fh.Fd()); err != nil {
+				fmt.Println(err)
+				return
+			}
+			time.Sleep(time.Second)
+		}
+	}()*/
+
 	t := 0.0
 
-	xfer := pcm.XferI{}
+	for {
 
-	for i := 0; i < buf_size; i++ {
+		amt := int(buf_size)
+		buf := bytes.NewBuffer(nil)
 
-		v := math.Sin(t * 2 * math.Pi * 440)
-		//v += math.Sin(t * 2 * math.Pi * 261.63)
-		//v += math.Sin(t * 2 * math.Pi * 349.23)
-		v *= 0.1
+		for i := 0; i < amt; i++ {
 
-		//buf[i] = uint8((v*0.5+0.5)*255)
-		sample := uint32((v*0.5 + 0.5) * 16777215)
+			v := math.Sin(t * 2 * math.Pi * 440)
+			//v += math.Sin(t * 2 * math.Pi * 261.63)
+			//v += math.Sin(t * 2 * math.Pi * 349.23)
+			v *= 0.1
 
-		binary.Write(buf, binary.BigEndian, sample)
-		binary.Write(buf, binary.BigEndian, sample)
+			sample := uint8((v*0.5 + 0.5) * 255)
 
-		t += 1.0 / float64(rate)
+			// U24_BE is lower 3 bytes of a 4 byte word
+			// 16777215 is max value of a 24 bit uint
+			//sample := uint32((v*0.5 + 0.5) * 16777215)
 
-		xfer.Frames++
-	}
+			binary.Write(buf, binary.BigEndian, sample)
+			binary.Write(buf, binary.BigEndian, sample)
+			//binary.Write(buf, binary.BigEndian, sample)
+			//binary.Write(buf, binary.BigEndian, sample)
+			//binary.Write(buf, binary.BigEndian, sample)
 
-	xfer.Buf = uintptr(unsafe.Pointer(&buf.Bytes()[0]))
+			t += (1.0 / float64(rate))
 
-	if err := get_status(fh.Fd()); err != nil {
-		return err
-	}
-	err = ioctl(fh.Fd(), ioctl_encode(CmdWrite, pcm.XferISize, CmdPCMWriteIFrames), &xfer)
-	if err != nil {
-		return err
-	}
-	fmt.Println("xfer complete")
-	for i := 0; i < 10; i++ {
-		if err := get_status(fh.Fd()); err != nil {
+		}
+
+		err = ioctl(fh.Fd(), ioctl_encode(CmdWrite, pcm.XferISize, CmdPCMWriteIFrames), &pcm.XferI{
+			Buf:    uintptr(unsafe.Pointer(&buf.Bytes()[0])),
+			Frames: misc.Uframes(amt),
+		})
+		if err != nil {
 			return err
 		}
-		time.Sleep(time.Millisecond * 100)
+		fmt.Println("xfer")
+		//fmt.Println("xfer", xfer.Frames, xfer.Result)
+		//time.Sleep(time.Millisecond * 10)
+		_ = time.Sleep
 	}
 
 	return nil
