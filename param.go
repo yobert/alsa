@@ -7,29 +7,29 @@ import (
 	"github.com/yobert/alsa/pcm"
 )
 
-type Param uint32
+type param uint32
 
 const (
-	ParamAccess    Param = 0
-	ParamFormat    Param = 1
-	ParamSubformat Param = 2
-	ParamFirstMask Param = ParamAccess
-	ParamLastMask  Param = ParamSubformat
+	paramAccess    param = 0
+	paramFormat    param = 1
+	paramSubformat param = 2
+	paramFirstMask param = paramAccess
+	paramLastMask  param = paramSubformat
 
-	ParamSampleBits    Param = 8
-	ParamFrameBits     Param = 9
-	ParamChannels      Param = 10
-	ParamRate          Param = 11
-	ParamPeriodTime    Param = 12
-	ParamPeriodSize    Param = 13
-	ParamPeriodBytes   Param = 14
-	ParamPeriods       Param = 15
-	ParamBufferTime    Param = 16
-	ParamBufferSize    Param = 17
-	ParamBufferBytes   Param = 18
-	ParamTickTime      Param = 19
-	ParamFirstInterval Param = ParamSampleBits
-	ParamLastInterval  Param = ParamTickTime
+	paramSampleBits    param = 8
+	paramFrameBits     param = 9
+	paramChannels      param = 10
+	paramRate          param = 11
+	paramPeriodTime    param = 12
+	paramPeriodSize    param = 13
+	paramPeriodBytes   param = 14
+	paramPeriods       param = 15
+	paramBufferTime    param = 16
+	paramBufferSize    param = 17
+	paramBufferBytes   param = 18
+	paramTickTime      param = 19
+	paramFirstInterval param = paramSampleBits
+	paramLastInterval  param = paramTickTime
 )
 
 type Flags uint32
@@ -58,13 +58,13 @@ func (f Flags) String() string {
 	return strings.TrimSpace(r)
 }
 
-func (p Param) IsMask() bool {
-	return p >= ParamFirstMask && p <= ParamLastMask
+func (p param) IsMask() bool {
+	return p >= paramFirstMask && p <= paramLastMask
 }
-func (p Param) IsInterval() bool {
-	return p >= ParamFirstInterval && p <= ParamLastInterval
+func (p param) IsInterval() bool {
+	return p >= paramFirstInterval && p <= paramLastInterval
 }
-func (p Param) String() string {
+func (p param) String() string {
 	if p.IsMask() {
 		return "≡" + p.name()
 	}
@@ -73,38 +73,38 @@ func (p Param) String() string {
 	}
 	return "Invalid"
 }
-func (p Param) name() string {
+func (p param) name() string {
 	switch p {
-	case ParamAccess:
+	case paramAccess:
 		return "Access"
-	case ParamFormat:
+	case paramFormat:
 		return "Format"
-	case ParamSubformat:
+	case paramSubformat:
 		return "Subfmt"
 
-	case ParamSampleBits:
+	case paramSampleBits:
 		return "SampleBits"
-	case ParamFrameBits:
+	case paramFrameBits:
 		return "FrameBits"
-	case ParamChannels:
+	case paramChannels:
 		return "Channels"
-	case ParamRate:
+	case paramRate:
 		return "Rate"
-	case ParamPeriodTime:
+	case paramPeriodTime:
 		return "PeriodTime"
-	case ParamPeriodSize:
+	case paramPeriodSize:
 		return "PeriodSize"
-	case ParamPeriodBytes:
+	case paramPeriodBytes:
 		return "PeriodBytes"
-	case ParamPeriods:
+	case paramPeriods:
 		return "Periods"
-	case ParamBufferTime:
+	case paramBufferTime:
 		return "BufferTime"
-	case ParamBufferSize:
+	case paramBufferSize:
 		return "BufferSize"
-	case ParamBufferBytes:
+	case paramBufferBytes:
 		return "BufferBytes"
-	case ParamTickTime:
+	case paramTickTime:
 		return "TickTime"
 	default:
 		return "Invalid"
@@ -113,7 +113,7 @@ func (p Param) name() string {
 
 func get_status(fd uintptr) error {
 	var status pcm.Status
-	err := ioctl(fd, ioctl_encode(CmdRead, pcm.StatusSize, CmdPCMStatus), &status)
+	err := ioctl(fd, ioctl_encode(cmdRead, pcm.StatusSize, cmdPCMStatus), &status)
 	if err != nil {
 		return err
 	}

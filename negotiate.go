@@ -9,14 +9,14 @@ func (device *Device) NegotiateChannels(channels ...int) (int, error) {
 
 	for _, v := range channels {
 
-		if !device.hwparams.IntervalInRange(ParamChannels, uint32(v)) {
+		if !device.hwparams.IntervalInRange(paramChannels, uint32(v)) {
 			err = fmt.Errorf("Channels %d out of range")
 			continue
 		}
 
 		device.hwparams.Cmask = 0
 		device.hwparams.Rmask = 0xffffffff
-		device.hwparams.SetInterval(ParamChannels, uint32(v), uint32(v), Integer)
+		device.hwparams.SetInterval(paramChannels, uint32(v), uint32(v), Integer)
 
 		err = device.refine()
 		if err == nil {
@@ -31,14 +31,14 @@ func (device *Device) NegotiateRate(rates ...int) (int, error) {
 	var err error
 
 	for _, v := range rates {
-		if !device.hwparams.IntervalInRange(ParamRate, uint32(v)) {
+		if !device.hwparams.IntervalInRange(paramRate, uint32(v)) {
 			err = fmt.Errorf("Rate %d out of range")
 			continue
 		}
 
 		device.hwparams.Cmask = 0
 		device.hwparams.Rmask = 0xffffffff
-		device.hwparams.SetInterval(ParamRate, uint32(v), uint32(v), Integer)
+		device.hwparams.SetInterval(paramRate, uint32(v), uint32(v), Integer)
 
 		err = device.refine()
 		if err == nil {
@@ -70,14 +70,14 @@ func (device *Device) NegotiateBufferSize(buffer_sizes ...int) (int, error) {
 	var err error
 
 	for _, v := range buffer_sizes {
-		if !device.hwparams.IntervalInRange(ParamBufferSize, uint32(v)) {
+		if !device.hwparams.IntervalInRange(paramBufferSize, uint32(v)) {
 			err = fmt.Errorf("Buffer size %d out of range")
 			continue
 		}
 
 		device.hwparams.Cmask = 0
 		device.hwparams.Rmask = 0xffffffff
-		device.hwparams.SetInterval(ParamBufferSize, uint32(v), uint32(v), Integer)
+		device.hwparams.SetInterval(paramBufferSize, uint32(v), uint32(v), Integer)
 
 		err = device.refine()
 		if err == nil {

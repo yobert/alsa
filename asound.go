@@ -4,60 +4,60 @@ import (
 	"fmt"
 
 	"github.com/yobert/alsa/misc"
-	"github.com/yobert/alsa/pcm/state"
+	//	"github.com/yobert/alsa/pcm/state"
 )
 
 const (
-	CmdWrite = 1
-	CmdRead  = 2
+	cmdWrite = 1
+	cmdRead  = 2
 
-	CmdPCMInfo          uintptr = 0x4101
-	CmdPCMVersion       uintptr = 0x4100
-	CmdPCMTimestamp     uintptr = 0x4102
-	CmdPCMTimestampType uintptr = 0x4103
-	CmdPCMHwRefine      uintptr = 0x4110
-	CmdPCMHwParams      uintptr = 0x4111
-	CmdPCMSwParams      uintptr = 0x4113
-	CmdPCMStatus        uintptr = 0x4120
+	cmdPCMInfo          uintptr = 0x4101
+	cmdPCMVersion       uintptr = 0x4100
+	cmdPCMTimestamp     uintptr = 0x4102
+	cmdPCMTimestampType uintptr = 0x4103
+	cmdPCMHwRefine      uintptr = 0x4110
+	cmdPCMHwParams      uintptr = 0x4111
+	cmdPCMSwParams      uintptr = 0x4113
+	cmdPCMStatus        uintptr = 0x4120
 
-	CmdPCMPrepare uintptr = 0x4140
-	CmdPCMReset   uintptr = 0x4141
-	CmdPCMStart   uintptr = 0x4142
-	CmdPCMDrop    uintptr = 0x4143
-	CmdPCMDrain   uintptr = 0x4144
-	CmdPCMPause   uintptr = 0x4145 // int
-	CmdPCMRewind  uintptr = 0x4146 // snd_pcm_uframes_t
-	CmdPCMResume  uintptr = 0x4147
-	CmdPCMXrun    uintptr = 0x4148
-	CmdPCMForward uintptr = 0x4149
+	cmdPCMPrepare uintptr = 0x4140
+	cmdPCMReset   uintptr = 0x4141
+	cmdPCMStart   uintptr = 0x4142
+	cmdPCMDrop    uintptr = 0x4143
+	cmdPCMDrain   uintptr = 0x4144
+	cmdPCMPause   uintptr = 0x4145 // int
+	cmdPCMRewind  uintptr = 0x4146 // snd_pcm_uframes_t
+	cmdPCMResume  uintptr = 0x4147
+	cmdPCMXrun    uintptr = 0x4148
+	cmdPCMForward uintptr = 0x4149
 
-	CmdPCMWriteIFrames uintptr = 0x4150 // snd_xferi
-	CmdPCMReadIFrames  uintptr = 0x4151 // snd_xferi
-	CmdPCMWriteNFrames uintptr = 0x4152 // snd_xfern
-	CmdPCMReadNFrames  uintptr = 0x4153 // snd_xfern
+	cmdPCMWriteIFrames uintptr = 0x4150 // snd_xferi
+	cmdPCMReadIFrames  uintptr = 0x4151 // snd_xferi
+	cmdPCMWriteNFrames uintptr = 0x4152 // snd_xfern
+	cmdPCMReadNFrames  uintptr = 0x4153 // snd_xfern
 
-	CmdPCMLink   uintptr = 0x4160 // int
-	CmdPCMUnlink uintptr = 0x4161
+	cmdPCMLink   uintptr = 0x4160 // int
+	cmdPCMUnlink uintptr = 0x4161
 
-	CmdControlVersion       uintptr = 0x5500
-	CmdControlCardInfo      uintptr = 0x5501
-	CmdControlPCMNextDevice uintptr = 0x5530
-	CmdControlPCMInfo       uintptr = 0x5531
+	cmdControlVersion       uintptr = 0x5500
+	cmdControlCardInfo      uintptr = 0x5501
+	cmdControlPCMNextDevice uintptr = 0x5530
+	cmdControlPCMInfo       uintptr = 0x5531
 )
 
 const (
-	PCMTimestampTypeGettimeofday = iota
-	PCMTimestampTypeMonotonic
-	PCMTimestampTypeMonotonicRaw
-	PCMTimestampTypeLast
+	pcmTimestampTypeGettimeofday = iota
+	pcmTimestampTypeMonotonic
+	pcmTimestampTypeMonotonicRaw
+	pcmTimestampTypeLast
 )
 
-const (
-	MapShared     = 0x00000001
-	OffsetData    = 0x00000000
-	OffsetStatus  = 0x80000000
-	OffsetControl = 0x81000000
-)
+//const (
+//	MapShared     = 0x00000001
+//	OffsetData    = 0x00000000
+//	OffsetStatus  = 0x80000000
+//	OffsetControl = 0x81000000
+//)
 
 type AccessType int
 
@@ -94,16 +94,16 @@ const (
 	Unknown FormatType = -1
 )
 const (
-	S8     FormatType = iota // 0
-	U8                       // 1
-	S16_LE                   // 2
-	S16_BE                   // 3
-	U16_LE                   // 4
-	U16_BE                   // 5
-	S24_LE                   // 6
-	S24_BE                   // 7
-	U24_LE                   // 8
-	U24_BE                   // 9
+	S8 FormatType = iota
+	U8
+	S16_LE
+	S16_BE
+	U16_LE
+	U16_BE
+	S24_LE
+	S24_BE
+	U24_LE
+	U24_BE
 	S32_LE
 	S32_BE
 	U32_LE
@@ -177,20 +177,20 @@ func (f SubformatType) String() string {
 	}
 }
 
-type MmapStatus struct {
-	State          state.State
-	Pad1           int32
-	HWPtr          uint
-	Tstamp         misc.Timespec
-	SuspendedState state.State
-	AudioTstamp    misc.Timespec
-}
-type MmapControl struct {
-	ApplPtr  uint
-	AvailMin uint
-}
+//type MmapStatus struct {
+//	State          state.State
+//	Pad1           int32
+//	HWPtr          uint
+//	Tstamp         misc.Timespec
+//	SuspendedState state.State
+//	AudioTstamp    misc.Timespec
+//}
+//type MmapControl struct {
+//	ApplPtr  uint
+//	AvailMin uint
+//}
 
-type CardInfo struct {
+type cardInfo struct {
 	Card       int32
 	_          int32
 	ID         [16]byte
@@ -202,26 +202,26 @@ type CardInfo struct {
 	Components [128]byte
 }
 
-func (s CardInfo) String() string {
+func (s cardInfo) String() string {
 	return fmt.Sprintf("Card %d %#v", s.Card, gstr(s.Name[:]))
 }
 
-type PVersion uint32
+type pVersion uint32
 
-func (v PVersion) Major() int {
+func (v pVersion) Major() int {
 	return int(v >> 16 & 0xffff)
 }
-func (v PVersion) Minor() int {
+func (v pVersion) Minor() int {
 	return int(v >> 8 & 0xff)
 }
-func (v PVersion) Patch() int {
+func (v pVersion) Patch() int {
 	return int(v & 0xff)
 }
-func (v PVersion) String() string {
+func (v pVersion) String() string {
 	return fmt.Sprintf("Protocol %d.%d.%d (%d)", v.Major(), v.Minor(), v.Patch(), uint32(v))
 }
 
-type PCMInfo struct {
+type pcmInfo struct {
 	Device          uint32
 	Subdevice       uint32
 	Stream          int32
@@ -237,7 +237,7 @@ type PCMInfo struct {
 	_               [64]byte
 }
 
-func (s PCMInfo) String() string {
+func (s pcmInfo) String() string {
 	r := fmt.Sprintf("PCM %d/%d/%d ", s.Card, s.Device, s.Subdevice)
 	switch s.Stream {
 	case 0:
@@ -255,28 +255,28 @@ func (s PCMInfo) String() string {
 }
 
 const (
-	MaskMax = 256
+	maskMax = 256
 )
 
-type Mask struct {
-	Bits [(MaskMax + 31) / 32]uint32
+type mask struct {
+	Bits [(maskMax + 31) / 32]uint32
 }
 
-type Interval struct {
+type interval struct {
 	Min, Max uint32
 	Flags    Flags
 }
 
-func (i Interval) String() string {
+func (i interval) String() string {
 	return fmt.Sprintf("Interval(%d/%d 0x%x)", i.Min, i.Max, i.Flags)
 }
 
-type Params struct {
+type hwParams struct {
 	Flags     uint32
-	Masks     [ParamLastMask - ParamFirstMask + 1]Mask
-	_         [5]Mask
-	Intervals [ParamLastInterval - ParamFirstInterval + 1]Interval
-	_         [9]Interval
+	Masks     [paramLastMask - paramFirstMask + 1]mask
+	_         [5]mask
+	Intervals [paramLastInterval - paramFirstInterval + 1]interval
+	_         [9]interval
 	Rmask     uint32
 	Cmask     uint32
 	Info      uint32
@@ -287,29 +287,29 @@ type Params struct {
 	_         [64]byte
 }
 
-func (p *Params) SetAccess(a AccessType) {
-	p.SetMask(ParamAccess, uint32(1<<uint(a)))
+func (p *hwParams) SetAccess(a AccessType) {
+	p.SetMask(paramAccess, uint32(1<<uint(a)))
 }
-func (p *Params) SetFormat(f FormatType) {
-	p.SetMask(ParamFormat, uint32(1<<uint(f)))
+func (p *hwParams) SetFormat(f FormatType) {
+	p.SetMask(paramFormat, uint32(1<<uint(f)))
 }
-func (p *Params) SetMask(param Param, v uint32) {
-	p.Masks[param-ParamFirstMask].Bits[0] = v
+func (p *hwParams) SetMask(param param, v uint32) {
+	p.Masks[param-paramFirstMask].Bits[0] = v
 }
 
-func (p *Params) SetInterval(param Param, min, max uint32, flags Flags) {
-	p.Intervals[param-ParamFirstInterval].Min = min
-	p.Intervals[param-ParamFirstInterval].Max = max
-	p.Intervals[param-ParamFirstInterval].Flags = flags
+func (p *hwParams) SetInterval(param param, min, max uint32, flags Flags) {
+	p.Intervals[param-paramFirstInterval].Min = min
+	p.Intervals[param-paramFirstInterval].Max = max
+	p.Intervals[param-paramFirstInterval].Flags = flags
 }
-func (p *Params) SetIntervalToMin(param Param) {
-	p.Intervals[param-ParamFirstInterval].Max = p.Intervals[param-ParamFirstInterval].Min
+func (p *hwParams) SetIntervalToMin(param param) {
+	p.Intervals[param-paramFirstInterval].Max = p.Intervals[param-paramFirstInterval].Min
 }
-func (p *Params) IntervalInRange(param Param, v uint32) bool {
-	if p.Intervals[param-ParamFirstInterval].Min > v {
+func (p *hwParams) IntervalInRange(param param, v uint32) bool {
+	if p.Intervals[param-paramFirstInterval].Min > v {
 		return false
 	}
-	if p.Intervals[param-ParamFirstInterval].Max < v {
+	if p.Intervals[param-paramFirstInterval].Max < v {
 		return false
 	}
 	return true
@@ -326,21 +326,21 @@ func fmt_uint(v uint32) string {
 	return fmt.Sprintf("0x%08x", v)
 }
 
-func (s *Params) String() string {
-	return s.Diff(&Params{})
+func (s *hwParams) String() string {
+	return s.Diff(&hwParams{})
 }
 
 func fmt_cmask(v uint32) string {
 
 	s := ""
 	o := v
-	for p := ParamFirstMask; p < ParamLastMask; p++ {
+	for p := paramFirstMask; p < paramLastMask; p++ {
 		if v&(1<<p) != 0 {
 			o ^= (1 << p)
 			s += " | " + p.String()
 		}
 	}
-	for p := ParamFirstInterval; p < ParamLastInterval; p++ {
+	for p := paramFirstInterval; p < paramLastInterval; p++ {
 		if v&(1<<p) != 0 {
 			o ^= (1 << p)
 			s += " | " + p.String()
@@ -356,7 +356,7 @@ func fmt_cmask(v uint32) string {
 	return fmt.Sprintf("0x%08x%s (0x%08x left)", v, s, o)
 }
 
-func (s *Params) Diff(w *Params) string {
+func (s *hwParams) Diff(w *hwParams) string {
 	r := ""
 
 	if s.Flags != w.Flags {
@@ -370,21 +370,21 @@ func (s *Params) Diff(w *Params) string {
 
 				sv := ""
 
-				/*				for mv := ParamFirstMask; mv < ParamLastMask; mv++ {
+				/*				for mv := paramFirstMask; mv < paramLastMask; mv++ {
 									if v&(1<<mv) != 0 {
 										sv += " " + mv.String()
 										//						v ^= (1<<mv)
 									}
 								}
 
-								for iv := ParamFirstInterval; iv < ParamLastInterval; iv++ {
+								for iv := paramFirstInterval; iv < paramLastInterval; iv++ {
 									if v&(1<<iv) != 0 {
 										sv += " " + iv.String()
 										//						v ^= (1 << iv)
 									}
 								}*/
 
-				if Param(i)+ParamFirstMask == ParamAccess {
+				if param(i)+paramFirstMask == paramAccess {
 					for a := AccessTypeFirst; a <= AccessTypeLast; a++ {
 						if v&(1<<uint(a)) != 0 {
 							sv += " " + a.String()
@@ -394,7 +394,7 @@ func (s *Params) Diff(w *Params) string {
 						}
 					}
 				}
-				if Param(i)+ParamFirstMask == ParamFormat {
+				if param(i)+paramFirstMask == paramFormat {
 					for a := FormatTypeFirst; a <= FormatTypeLast; a++ {
 						if v&(1<<uint(a)) != 0 {
 							sv += " " + a.String()
@@ -404,7 +404,7 @@ func (s *Params) Diff(w *Params) string {
 						}
 					}
 				}
-				if Param(i)+ParamFirstMask == ParamSubformat {
+				if param(i)+paramFirstMask == paramSubformat {
 					for a := SubformatTypeFirst; a <= SubformatTypeLast; a++ {
 						if v&(1<<uint(a)) != 0 {
 							sv += " " + a.String()
@@ -415,7 +415,7 @@ func (s *Params) Diff(w *Params) string {
 					}
 				}
 
-				r += fmt.Sprintf("  Mask %d[%d]  %8s  %-12s %s\n", i, j, (Param(i) + ParamFirstMask).String(), fmt_uint(v), sv)
+				r += fmt.Sprintf("  Mask %d[%d]  %8s  %-12s %s\n", i, j, (param(i) + paramFirstMask).String(), fmt_uint(v), sv)
 			}
 		}
 	}
@@ -429,7 +429,7 @@ func (s *Params) Diff(w *Params) string {
 
 		r += fmt.Sprintf("  Interval %d\t", i)
 
-		it := (Param(i) + ParamFirstInterval).String()
+		it := (param(i) + paramFirstInterval).String()
 		iv := ""
 
 		if s.Intervals[i].Min == 0 && s.Intervals[i].Max == 0xffffffff {

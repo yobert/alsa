@@ -11,8 +11,8 @@ type Card struct {
 	Number int
 
 	fh       *os.File
-	pversion PVersion
-	cardinfo CardInfo
+	pversion pVersion
+	cardinfo cardInfo
 }
 
 func (card Card) String() string {
@@ -42,12 +42,12 @@ func OpenCards() ([]*Card, error) {
 			fh:     fh,
 		}
 
-		err = ioctl(fh.Fd(), ioctl_encode(CmdRead, 4, CmdControlVersion), &card.pversion)
+		err = ioctl(fh.Fd(), ioctl_encode(cmdRead, 4, cmdControlVersion), &card.pversion)
 		if err != nil {
 			return ret, err
 		}
 
-		err = ioctl(fh.Fd(), ioctl_encode(CmdRead, 376, CmdControlCardInfo), &card.cardinfo)
+		err = ioctl(fh.Fd(), ioctl_encode(cmdRead, 376, cmdControlCardInfo), &card.cardinfo)
 		if err != nil {
 			return ret, err
 		}

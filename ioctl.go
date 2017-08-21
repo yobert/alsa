@@ -13,10 +13,10 @@ func (c ioctl_e) String() string {
 	size := c >> 16 & 0x3fff
 	cmd := c & 0xffff
 	mode_str := ""
-	if mode&CmdWrite > 0 {
+	if mode&cmdWrite > 0 {
 		mode_str += " write"
 	}
-	if mode&CmdRead > 0 {
+	if mode&cmdRead > 0 {
 		mode_str += " read "
 	}
 	return fmt.Sprintf("ioctl%s (%d bytes) 0x%04x", mode_str, size, uintptr(cmd))

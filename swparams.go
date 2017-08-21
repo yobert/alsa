@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-type SwParams struct {
+type swParams struct {
 	TstampMode int32
 	PeriodStep uint32
 	SleepMin   uint32
@@ -18,17 +18,17 @@ type SwParams struct {
 	SilenceSize      uint
 	Boundary         uint
 
-	Proto         PVersion
+	Proto         pVersion
 	TstampType    uint32
 	Reserved      [56]byte
 	padding_for_c [4]byte
 }
 
-func (s *SwParams) String() string {
-	return s.Diff(&SwParams{})
+func (s *swParams) String() string {
+	return s.Diff(&swParams{})
 }
 
-func (s *SwParams) Diff(w *SwParams) string {
+func (s *swParams) Diff(w *swParams) string {
 	r := ""
 
 	v1 := reflect.ValueOf(*s)
