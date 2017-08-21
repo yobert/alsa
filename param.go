@@ -1,10 +1,8 @@
-package main
+package alsa
 
 import (
 	"fmt"
 	"strings"
-
-	"color"
 
 	"github.com/yobert/alsa/pcm"
 )
@@ -111,44 +109,6 @@ func (p Param) name() string {
 	default:
 		return "Invalid"
 	}
-}
-
-func refine(fd uintptr, params *Params, last *Params) error {
-
-	fmt.Println(color.Text(color.Green))
-	fmt.Print(params.Diff(last))
-	*last = *params
-
-	err := ioctl(fd, ioctl_encode(CmdRead|CmdWrite, 608, CmdPCMHwRefine), params)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(color.Text(color.Magenta))
-	fmt.Print(params.Diff(last))
-	fmt.Print(color.Reset())
-	*last = *params
-
-	return nil
-}
-
-func hw_params(fd uintptr, params *Params, last *Params) error {
-
-	fmt.Println(color.Text(color.Green))
-	fmt.Print(params.Diff(last))
-	*last = *params
-
-	err := ioctl(fd, ioctl_encode(CmdRead|CmdWrite, 608, CmdPCMHwParams), params)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(color.Text(color.Magenta))
-	fmt.Print(params.Diff(last))
-	fmt.Print(color.Reset())
-	*last = *params
-
-	return nil
 }
 
 func get_status(fd uintptr) error {

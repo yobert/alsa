@@ -1,10 +1,8 @@
-package main
+package alsa
 
 import (
 	"fmt"
 	"reflect"
-
-	"color"
 )
 
 type SwParams struct {
@@ -24,25 +22,6 @@ type SwParams struct {
 	TstampType    uint32
 	Reserved      [56]byte
 	padding_for_c [4]byte
-}
-
-func sw_params(fd uintptr, params *SwParams, last *SwParams) error {
-
-	fmt.Println(color.Text(color.Green))
-	fmt.Print(params.Diff(last))
-	*last = *params
-
-	err := ioctl(fd, ioctl_encode(CmdRead|CmdWrite, 136, CmdPCMSwParams), params)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(color.Text(color.Magenta))
-	fmt.Print(params.Diff(last))
-	fmt.Print(color.Reset())
-	*last = *params
-
-	return nil
 }
 
 func (s *SwParams) String() string {
