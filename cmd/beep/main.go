@@ -69,7 +69,7 @@ func beep_device(device *alsa.Device) error {
 		return err
 	}
 
-	buffer_size, err := device.NegotiateBufferSize(4, 1024, 8192, 16384)
+	buffer_size, err := device.NegotiateBufferSize(1024, 8192, 16384)
 	if err != nil {
 		return err
 	}
