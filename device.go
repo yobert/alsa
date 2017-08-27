@@ -155,6 +155,10 @@ func (device *Device) Close() {
 	}
 }
 
+func (device *Device) Debug(v bool) {
+	device.debug = v
+}
+
 func (device *Device) Prepare() error {
 	if device.debug {
 		fmt.Println("Final hardware parameter changes:")
@@ -203,12 +207,16 @@ func (device *Device) Prepare() error {
 	return nil
 }
 
-func (device *Device) Write(b []byte, frames int) error {
-	if len(b) == 0 {
-		return nil
-	}
+func (device *Device) Read(buf []byte, frames int) error {
+	return ioctl(device.fh.Fd(), ioctl_encode(cmdRead, pcm.XferISize, cmdPCMReadIFrames), &pcm.XferI{
+		Buf:    uintptr(unsafe.Pointer(&buf[0])),
+		Frames: misc.Uframes(frames),
+	})
+}
+
+func (device *Device) Write(buf []byte, frames int) error {
 	return ioctl(device.fh.Fd(), ioctl_encode(cmdWrite, pcm.XferISize, cmdPCMWriteIFrames), &pcm.XferI{
-		Buf:    uintptr(unsafe.Pointer(&b[0])),
+		Buf:    uintptr(unsafe.Pointer(&buf[0])),
 		Frames: misc.Uframes(frames),
 	})
 }

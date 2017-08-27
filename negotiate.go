@@ -87,3 +87,9 @@ func (device *Device) NegotiateBufferSize(buffer_sizes ...int) (int, error) {
 
 	return 0, err
 }
+
+func (device *Device) BytesPerFrame() int {
+	sample_size := int(device.hwparams.Intervals[paramSampleBits-paramFirstInterval].Max) / 8
+	channels := int(device.hwparams.Intervals[paramChannels-paramFirstInterval].Max)
+	return sample_size * channels
+}
