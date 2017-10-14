@@ -57,7 +57,7 @@ func (card *Card) Devices() ([]*Device, error) {
 	ret := make([]*Device, 0)
 
 	for {
-		err := ioctl(card.fh.Fd(), ioctl_encode(cmdRead, 4, cmdControlPCMNextDevice), &next)
+		err := ioctl(card.fh.Fd(), ioctl_encode_ptr(cmdRead, &next, cmdControlPCMNextDevice), &next)
 		if err != nil {
 			return ret, err
 		}
@@ -71,7 +71,7 @@ func (card *Card) Devices() ([]*Device, error) {
 			pi.Device = uint32(next)
 			pi.Subdevice = 0
 			pi.Stream = stream
-			err = ioctl(card.fh.Fd(), ioctl_encode(cmdRead|cmdWrite, 288, cmdControlPCMInfo), &pi)
+			err = ioctl(card.fh.Fd(), ioctl_encode_ptr(cmdRead|cmdWrite, &pi, cmdControlPCMInfo), &pi)
 			if err != nil {
 				// Probably means that device doesn't match that stream type
 			} else {
@@ -107,14 +107,14 @@ func (device *Device) Open() error {
 		return err
 	}
 
-	err = ioctl(device.fh.Fd(), ioctl_encode(cmdRead, 4, cmdPCMVersion), &device.pversion)
+	err = ioctl(device.fh.Fd(), ioctl_encode_ptr(cmdRead, &device.pversion, cmdPCMVersion), &device.pversion)
 	if err != nil {
 		device.fh.Close()
 		return err
 	}
 
 	ttstamp := uint32(pcmTimestampTypeGettimeofday)
-	err = ioctl(device.fh.Fd(), ioctl_encode(cmdWrite, 4, cmdPCMTimestampType), &ttstamp)
+	err = ioctl(device.fh.Fd(), ioctl_encode_ptr(cmdWrite, &ttstamp, cmdPCMTimestampType), &ttstamp)
 	if err != nil {
 		device.fh.Close()
 		return err
@@ -167,7 +167,7 @@ func (device *Device) Prepare() error {
 	}
 	device.hwparams_prev = device.hwparams
 
-	err := ioctl(device.fh.Fd(), ioctl_encode(cmdRead|cmdWrite, 608, cmdPCMHwParams), &device.hwparams)
+	err := ioctl(device.fh.Fd(), ioctl_encode_ptr(cmdRead|cmdWrite, &device.hwParams, cmdPCMHwParams), &device.hwparams)
 	if err != nil {
 		return err
 	}
@@ -230,7 +230,7 @@ func (device *Device) refine() error {
 	}
 	device.hwparams_prev = device.hwparams
 
-	err := ioctl(device.fh.Fd(), ioctl_encode(cmdRead|cmdWrite, 608, cmdPCMHwRefine), &device.hwparams)
+	err := ioctl(device.fh.Fd(), ioctl_encode_ptr(cmdRead|cmdWrite, &device.hwparams, cmdPCMHwRefine), &device.hwparams)
 	if err != nil {
 		return err
 	}
@@ -255,7 +255,7 @@ func (device *Device) sw_params() error {
 	}
 	device.swparams_prev = device.swparams
 
-	err := ioctl(device.fh.Fd(), ioctl_encode(cmdRead|cmdWrite, 136, cmdPCMSwParams), &device.swparams)
+	err := ioctl(device.fh.Fd(), ioctl_encode_ptr(cmdRead|cmdWrite, &device.swparams, cmdPCMSwParams), &device.swparams)
 	if err != nil {
 		return err
 	}
