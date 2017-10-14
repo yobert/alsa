@@ -5,9 +5,9 @@ import (
 	"os"
 	"unsafe"
 
-	"github.com/yobert/alsa/color"
-	"github.com/yobert/alsa/misc"
-	"github.com/yobert/alsa/pcm"
+	"github.com/ironiridis/alsa/color"
+	"github.com/ironiridis/alsa/misc"
+	"github.com/ironiridis/alsa/pcm"
 )
 
 type DeviceType int
@@ -167,7 +167,7 @@ func (device *Device) Prepare() error {
 	}
 	device.hwparams_prev = device.hwparams
 
-	err := ioctl(device.fh.Fd(), ioctl_encode_ptr(cmdRead|cmdWrite, &device.hwParams, cmdPCMHwParams), &device.hwparams)
+	err := ioctl(device.fh.Fd(), ioctl_encode_ptr(cmdRead|cmdWrite, &device.hwparams, cmdPCMHwParams), &device.hwparams)
 	if err != nil {
 		return err
 	}

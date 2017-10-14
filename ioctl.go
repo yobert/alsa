@@ -52,5 +52,5 @@ func ioctl_encode(mode byte, size uint16, cmd uintptr) ioctl_e {
 }
 
 func ioctl_encode_ptr(mode byte, ref interface{}, cmd uintptr) ioctl_e {
-	return ioctl_encode(mode, uint16(reflect.TypeOf(ptr).Elem().Size()), cmd)
+	return ioctl_encode(mode, uint16(reflect.TypeOf(ref).Elem().Size()), cmd)
 }
