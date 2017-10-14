@@ -3,6 +3,7 @@ package alsa
 import (
 	"fmt"
 	"reflect"
+	"github.com/ironiridis/alsa/misc"
 )
 
 type swParams struct {
@@ -10,13 +11,13 @@ type swParams struct {
 	PeriodStep uint32
 	SleepMin   uint32
 
-	AvailMin         uint
-	XferAlign        uint
-	StartThreshold   uint
-	StopThreshold    uint
-	SilenceThreshold uint
-	SilenceSize      uint
-	Boundary         uint
+	AvailMin         misc.Uframes
+	XferAlign        misc.Uframes
+	StartThreshold   misc.Uframes
+	StopThreshold    misc.Uframes
+	SilenceThreshold misc.Uframes
+	SilenceSize      misc.Uframes
+	Boundary         misc.Uframes
 
 	Proto         pVersion
 	TstampType    uint32
