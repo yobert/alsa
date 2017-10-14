@@ -6,7 +6,7 @@ import (
 	"unsafe"
 
 	"github.com/ironiridis/alsa/color"
-	"github.com/ironiridis/alsa/misc"
+	"github.com/ironiridis/alsa/alsatype"
 	"github.com/ironiridis/alsa/pcm"
 )
 
@@ -39,13 +39,13 @@ type Device struct {
 	fh      *os.File
 	pcminfo pcmInfo
 
-	pversion pVersion
+	pversion alsatype.PVersion
 
 	hwparams      hwParams
 	hwparams_prev hwParams
 
-	swparams      swParams
-	swparams_prev swParams
+	swparams      alsatype.SwParams
+	swparams_prev alsatype.SwParams
 }
 
 func (device Device) String() string {
@@ -184,14 +184,14 @@ func (device *Device) Prepare() error {
 	// final buf size
 	buf_size := int(device.hwparams.Intervals[paramBufferSize-paramFirstInterval].Max)
 
-	device.swparams = swParams{}
-	device.swparams_prev = swParams{}
+	device.swparams = alsatype.SwParams{}
+	device.swparams_prev = alsatype.SwParams{}
 
 	device.swparams.PeriodStep = 1
-	device.swparams.AvailMin = misc.Uframes(buf_size)
+	device.swparams.AvailMin = alsatype.Uframes(buf_size)
 	device.swparams.XferAlign = 1
-	device.swparams.StartThreshold = misc.Uframes(buf_size)
-	device.swparams.StopThreshold = misc.Uframes(buf_size * 2)
+	device.swparams.StartThreshold = alsatype.Uframes(buf_size)
+	device.swparams.StopThreshold = alsatype.Uframes(buf_size * 2)
 	device.swparams.Proto = device.pversion
 	device.swparams.TstampType = 1
 
@@ -209,14 +209,14 @@ func (device *Device) Prepare() error {
 func (device *Device) Read(buf []byte, frames int) error {
 	return ioctl(device.fh.Fd(), ioctl_encode(cmdRead, pcm.XferISize, cmdPCMReadIFrames), &pcm.XferI{
 		Buf:    uintptr(unsafe.Pointer(&buf[0])),
-		Frames: misc.Uframes(frames),
+		Frames: alsatype.Uframes(frames),
 	})
 }
 
 func (device *Device) Write(buf []byte, frames int) error {
 	return ioctl(device.fh.Fd(), ioctl_encode(cmdWrite, pcm.XferISize, cmdPCMWriteIFrames), &pcm.XferI{
 		Buf:    uintptr(unsafe.Pointer(&buf[0])),
-		Frames: misc.Uframes(frames),
+		Frames: alsatype.Uframes(frames),
 	})
 }
 

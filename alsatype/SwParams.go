@@ -1,16 +1,16 @@
-package alsa
+package alsatype
 
 import (
 	"fmt"
 	"reflect"
-	"github.com/ironiridis/alsa/misc"
+	
 )
 
-func (s *swParams) String() string {
-	return s.Diff(&swParams{})
+func (s *SwParams) String() string {
+	return s.Diff(&SwParams{})
 }
 
-func (s *swParams) Diff(w *swParams) string {
+func (s *SwParams) Diff(w *SwParams) string {
 	r := ""
 
 	v1 := reflect.ValueOf(*s)

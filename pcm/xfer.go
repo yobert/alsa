@@ -1,13 +1,13 @@
 package pcm
 
 import (
-	"github.com/ironiridis/alsa/misc"
+	"github.com/ironiridis/alsa/alsatype"
 )
 
 type XferI struct {
-	Result misc.Sframes
+	Result alsatype.Sframes
 	Buf    uintptr
-	Frames misc.Uframes
+	Frames alsatype.Uframes
 }
 
 const XferISize = 24

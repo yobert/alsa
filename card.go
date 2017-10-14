@@ -3,6 +3,7 @@ package alsa
 import (
 	"fmt"
 	"os"
+	"github.com/ironiridis/alsa/alsatype"
 )
 
 type Card struct {
@@ -11,7 +12,7 @@ type Card struct {
 	Number int
 
 	fh       *os.File
-	pversion pVersion
+	pversion alsatype.PVersion
 	cardinfo cardInfo
 }
 

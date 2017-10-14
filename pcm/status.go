@@ -3,24 +3,24 @@ package pcm
 import (
 	"fmt"
 
-	"github.com/ironiridis/alsa/misc"
+	"github.com/ironiridis/alsa/alsatype"
 	"github.com/ironiridis/alsa/pcm/state"
 )
 
 type Status struct {
 	State               state.State
-	TriggerTstamp       misc.Timespec
-	Tstamp              misc.Timespec
-	ApplPtr             misc.Uframes
-	HwPtr               misc.Uframes
-	Delay               misc.Sframes
-	Avail               misc.Uframes
-	AvailMax            misc.Uframes
-	Overrange           misc.Uframes
+	TriggerTstamp       alsatype.Timespec
+	Tstamp              alsatype.Timespec
+	ApplPtr             alsatype.Uframes
+	HwPtr               alsatype.Uframes
+	Delay               alsatype.Sframes
+	Avail               alsatype.Uframes
+	AvailMax            alsatype.Uframes
+	Overrange           alsatype.Uframes
 	SuspendedState      state.State
 	AudioTstampData     uint32
-	AudioTstamp         misc.Timespec
-	DriverTstamp        misc.Timespec
+	AudioTstamp         alsatype.Timespec
+	DriverTstamp        alsatype.Timespec
 	AudioTstampAccuracy uint32 // nanoseconds
 	Reserved            [20]byte
 }
