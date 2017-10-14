@@ -188,10 +188,10 @@ func (device *Device) Prepare() error {
 	device.swparams_prev = swParams{}
 
 	device.swparams.PeriodStep = 1
-	device.swparams.AvailMin = uint(buf_size)
+	device.swparams.AvailMin = misc.Uframes(buf_size)
 	device.swparams.XferAlign = 1
-	device.swparams.StartThreshold = uint(buf_size)
-	device.swparams.StopThreshold = uint(buf_size * 2)
+	device.swparams.StartThreshold = misc.Uframes(buf_size)
+	device.swparams.StopThreshold = misc.Uframes(buf_size * 2)
 	device.swparams.Proto = device.pversion
 	device.swparams.TstampType = 1
 
