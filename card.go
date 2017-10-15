@@ -3,7 +3,7 @@ package alsa
 import (
 	"fmt"
 	"os"
-	"github.com/ironiridis/alsa/alsatype"
+	"github.com/yobert/alsa/alsatype"
 )
 
 type Card struct {

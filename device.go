@@ -5,9 +5,9 @@ import (
 	"os"
 	"unsafe"
 
-	"github.com/ironiridis/alsa/color"
-	"github.com/ironiridis/alsa/alsatype"
-	"github.com/ironiridis/alsa/pcm"
+	"github.com/yobert/alsa/color"
+	"github.com/yobert/alsa/alsatype"
+	"github.com/yobert/alsa/pcm"
 )
 
 type DeviceType int

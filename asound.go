@@ -3,7 +3,7 @@ package alsa
 import (
 	"fmt"
 
-	"github.com/ironiridis/alsa/alsatype"
+	"github.com/yobert/alsa/alsatype"
 	//	"github.com/yobert/alsa/pcm/state"
 )
 

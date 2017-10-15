@@ -1,7 +1,7 @@
 package pcm
 
 import (
-	"github.com/ironiridis/alsa/alsatype"
+	"github.com/yobert/alsa/alsatype"
 )
 
 type XferI struct {

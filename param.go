@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ironiridis/alsa/pcm"
+	"github.com/yobert/alsa/pcm"
 )
 
 type param uint32
