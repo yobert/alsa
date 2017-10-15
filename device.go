@@ -207,17 +207,19 @@ func (device *Device) Prepare() error {
 }
 
 func (device *Device) Read(buf []byte, frames int) error {
-	return ioctl(device.fh.Fd(), ioctl_encode(cmdRead, pcm.XferISize, cmdPCMReadIFrames), &pcm.XferI{
+	x := pcm.XferI{
 		Buf:    uintptr(unsafe.Pointer(&buf[0])),
 		Frames: alsatype.Uframes(frames),
-	})
+	}
+	return ioctl(device.fh.Fd(), ioctl_encode_ptr(cmdRead, &x, cmdPCMReadIFrames), &x)
 }
 
 func (device *Device) Write(buf []byte, frames int) error {
-	return ioctl(device.fh.Fd(), ioctl_encode(cmdWrite, pcm.XferISize, cmdPCMWriteIFrames), &pcm.XferI{
+	x := pcm.XferI{
 		Buf:    uintptr(unsafe.Pointer(&buf[0])),
 		Frames: alsatype.Uframes(frames),
-	})
+	}
+	return ioctl(device.fh.Fd(), ioctl_encode_ptr(cmdWrite, &x, cmdPCMWriteIFrames), &x)
 }
 
 func (device *Device) refine() error {

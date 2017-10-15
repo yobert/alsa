@@ -26,6 +26,5 @@ type SwParams struct {
 	Proto         PVersion
 	TstampType    uint32
 	Reserved      [56]byte
-	padding_for_c [4]byte
 }
 type PVersion uint32
