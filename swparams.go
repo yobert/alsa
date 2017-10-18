@@ -51,25 +51,11 @@ func (s *swParams) Diff(w *swParams) string {
 			if v1v.Uint() != v2v.Uint() {
 				d = fmt_uint(uint32(v1v.Uint())) + fmt.Sprintf(" (%d)", v1v.Uint())
 			}
-		case reflect.Uint:
-			fallthrough
-		case reflect.Uint8:
-			fallthrough
-		case reflect.Uint16:
-			fallthrough
-		case reflect.Uint64:
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint64:
 			if v1v.Uint() != v2v.Uint() {
 				d = fmt.Sprintf("%d", v1v.Uint())
 			}
-		case reflect.Int:
-			fallthrough
-		case reflect.Int8:
-			fallthrough
-		case reflect.Int16:
-			fallthrough
-		case reflect.Int32:
-			fallthrough
-		case reflect.Int64:
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			if v1v.Int() != v2v.Int() {
 				d = fmt.Sprintf("%d", v1v.Int())
 			}
