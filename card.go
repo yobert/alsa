@@ -3,6 +3,7 @@ package alsa
 import (
 	"fmt"
 	"os"
+	"github.com/yobert/alsa/alsatype"
 )
 
 type Card struct {
@@ -11,7 +12,7 @@ type Card struct {
 	Number int
 
 	fh       *os.File
-	pversion pVersion
+	pversion alsatype.PVersion
 	cardinfo cardInfo
 }
 
@@ -42,12 +43,12 @@ func OpenCards() ([]*Card, error) {
 			fh:     fh,
 		}
 
-		err = ioctl(fh.Fd(), ioctl_encode(cmdRead, 4, cmdControlVersion), &card.pversion)
+		err = ioctl(fh.Fd(), ioctl_encode_ptr(cmdRead, &card.pversion, cmdControlVersion), &card.pversion)
 		if err != nil {
 			return ret, err
 		}
 
-		err = ioctl(fh.Fd(), ioctl_encode(cmdRead, 376, cmdControlCardInfo), &card.cardinfo)
+		err = ioctl(fh.Fd(), ioctl_encode_ptr(cmdRead, &card.cardinfo, cmdControlCardInfo), &card.cardinfo)
 		if err != nil {
 			return ret, err
 		}

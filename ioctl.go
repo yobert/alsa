@@ -50,3 +50,7 @@ func gstr(c []byte) string {
 func ioctl_encode(mode byte, size uint16, cmd uintptr) ioctl_e {
 	return ioctl_e(mode)<<30 | ioctl_e(size)<<16 | ioctl_e(cmd)
 }
+
+func ioctl_encode_ptr(mode byte, ref interface{}, cmd uintptr) ioctl_e {
+	return ioctl_encode(mode, uint16(reflect.TypeOf(ref).Elem().Size()), cmd)
+}

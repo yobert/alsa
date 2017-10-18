@@ -6,7 +6,7 @@ import (
 	"unsafe"
 
 	"github.com/yobert/alsa/color"
-	"github.com/yobert/alsa/misc"
+	"github.com/yobert/alsa/alsatype"
 	"github.com/yobert/alsa/pcm"
 )
 
@@ -39,13 +39,13 @@ type Device struct {
 	fh      *os.File
 	pcminfo pcmInfo
 
-	pversion pVersion
+	pversion alsatype.PVersion
 
 	hwparams      hwParams
 	hwparams_prev hwParams
 
-	swparams      swParams
-	swparams_prev swParams
+	swparams      alsatype.SwParams
+	swparams_prev alsatype.SwParams
 }
 
 func (device Device) String() string {
@@ -57,7 +57,7 @@ func (card *Card) Devices() ([]*Device, error) {
 	ret := make([]*Device, 0)
 
 	for {
-		err := ioctl(card.fh.Fd(), ioctl_encode(cmdRead, 4, cmdControlPCMNextDevice), &next)
+		err := ioctl(card.fh.Fd(), ioctl_encode_ptr(cmdRead, &next, cmdControlPCMNextDevice), &next)
 		if err != nil {
 			return ret, err
 		}
@@ -71,7 +71,7 @@ func (card *Card) Devices() ([]*Device, error) {
 			pi.Device = uint32(next)
 			pi.Subdevice = 0
 			pi.Stream = stream
-			err = ioctl(card.fh.Fd(), ioctl_encode(cmdRead|cmdWrite, 288, cmdControlPCMInfo), &pi)
+			err = ioctl(card.fh.Fd(), ioctl_encode_ptr(cmdRead|cmdWrite, &pi, cmdControlPCMInfo), &pi)
 			if err != nil {
 				// Probably means that device doesn't match that stream type
 			} else {
@@ -107,14 +107,14 @@ func (device *Device) Open() error {
 		return err
 	}
 
-	err = ioctl(device.fh.Fd(), ioctl_encode(cmdRead, 4, cmdPCMVersion), &device.pversion)
+	err = ioctl(device.fh.Fd(), ioctl_encode_ptr(cmdRead, &device.pversion, cmdPCMVersion), &device.pversion)
 	if err != nil {
 		device.fh.Close()
 		return err
 	}
 
 	ttstamp := uint32(pcmTimestampTypeGettimeofday)
-	err = ioctl(device.fh.Fd(), ioctl_encode(cmdWrite, 4, cmdPCMTimestampType), &ttstamp)
+	err = ioctl(device.fh.Fd(), ioctl_encode_ptr(cmdWrite, &ttstamp, cmdPCMTimestampType), &ttstamp)
 	if err != nil {
 		device.fh.Close()
 		return err
@@ -167,7 +167,7 @@ func (device *Device) Prepare() error {
 	}
 	device.hwparams_prev = device.hwparams
 
-	err := ioctl(device.fh.Fd(), ioctl_encode(cmdRead|cmdWrite, 608, cmdPCMHwParams), &device.hwparams)
+	err := ioctl(device.fh.Fd(), ioctl_encode_ptr(cmdRead|cmdWrite, &device.hwparams, cmdPCMHwParams), &device.hwparams)
 	if err != nil {
 		return err
 	}
@@ -184,14 +184,14 @@ func (device *Device) Prepare() error {
 	// final buf size
 	buf_size := int(device.hwparams.Intervals[paramBufferSize-paramFirstInterval].Max)
 
-	device.swparams = swParams{}
-	device.swparams_prev = swParams{}
+	device.swparams = alsatype.SwParams{}
+	device.swparams_prev = alsatype.SwParams{}
 
 	device.swparams.PeriodStep = 1
-	device.swparams.AvailMin = uint(buf_size)
+	device.swparams.AvailMin = alsatype.Uframes(buf_size)
 	device.swparams.XferAlign = 1
-	device.swparams.StartThreshold = uint(buf_size)
-	device.swparams.StopThreshold = uint(buf_size * 2)
+	device.swparams.StartThreshold = alsatype.Uframes(buf_size)
+	device.swparams.StopThreshold = alsatype.Uframes(buf_size * 2)
 	device.swparams.Proto = device.pversion
 	device.swparams.TstampType = 1
 
@@ -207,17 +207,19 @@ func (device *Device) Prepare() error {
 }
 
 func (device *Device) Read(buf []byte, frames int) error {
-	return ioctl(device.fh.Fd(), ioctl_encode(cmdRead, pcm.XferISize, cmdPCMReadIFrames), &pcm.XferI{
+	x := pcm.XferI{
 		Buf:    uintptr(unsafe.Pointer(&buf[0])),
-		Frames: misc.Uframes(frames),
-	})
+		Frames: alsatype.Uframes(frames),
+	}
+	return ioctl(device.fh.Fd(), ioctl_encode_ptr(cmdRead, &x, cmdPCMReadIFrames), &x)
 }
 
 func (device *Device) Write(buf []byte, frames int) error {
-	return ioctl(device.fh.Fd(), ioctl_encode(cmdWrite, pcm.XferISize, cmdPCMWriteIFrames), &pcm.XferI{
+	x := pcm.XferI{
 		Buf:    uintptr(unsafe.Pointer(&buf[0])),
-		Frames: misc.Uframes(frames),
-	})
+		Frames: alsatype.Uframes(frames),
+	}
+	return ioctl(device.fh.Fd(), ioctl_encode_ptr(cmdWrite, &x, cmdPCMWriteIFrames), &x)
 }
 
 func (device *Device) refine() error {
@@ -230,7 +232,7 @@ func (device *Device) refine() error {
 	}
 	device.hwparams_prev = device.hwparams
 
-	err := ioctl(device.fh.Fd(), ioctl_encode(cmdRead|cmdWrite, 608, cmdPCMHwRefine), &device.hwparams)
+	err := ioctl(device.fh.Fd(), ioctl_encode_ptr(cmdRead|cmdWrite, &device.hwparams, cmdPCMHwRefine), &device.hwparams)
 	if err != nil {
 		return err
 	}
@@ -255,7 +257,7 @@ func (device *Device) sw_params() error {
 	}
 	device.swparams_prev = device.swparams
 
-	err := ioctl(device.fh.Fd(), ioctl_encode(cmdRead|cmdWrite, 136, cmdPCMSwParams), &device.swparams)
+	err := ioctl(device.fh.Fd(), ioctl_encode_ptr(cmdRead|cmdWrite, &device.swparams, cmdPCMSwParams), &device.swparams)
 	if err != nil {
 		return err
 	}

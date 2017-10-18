@@ -3,7 +3,7 @@ package alsa
 import (
 	"fmt"
 
-	"github.com/yobert/alsa/misc"
+	"github.com/yobert/alsa/alsatype"
 	//	"github.com/yobert/alsa/pcm/state"
 )
 
@@ -181,9 +181,9 @@ func (f SubformatType) String() string {
 //	State          state.State
 //	Pad1           int32
 //	HWPtr          uint
-//	Tstamp         misc.Timespec
+//	Tstamp         Timespec
 //	SuspendedState state.State
-//	AudioTstamp    misc.Timespec
+//	AudioTstamp    Timespec
 //}
 //type MmapControl struct {
 //	ApplPtr  uint
@@ -204,21 +204,6 @@ type cardInfo struct {
 
 func (s cardInfo) String() string {
 	return fmt.Sprintf("Card %d %#v", s.Card, gstr(s.Name[:]))
-}
-
-type pVersion uint32
-
-func (v pVersion) Major() int {
-	return int(v >> 16 & 0xffff)
-}
-func (v pVersion) Minor() int {
-	return int(v >> 8 & 0xff)
-}
-func (v pVersion) Patch() int {
-	return int(v & 0xff)
-}
-func (v pVersion) String() string {
-	return fmt.Sprintf("Protocol %d.%d.%d (%d)", v.Major(), v.Minor(), v.Patch(), uint32(v))
 }
 
 type pcmInfo struct {
@@ -283,7 +268,7 @@ type hwParams struct {
 	Msbits    uint32
 	RateNum   uint32
 	RateDen   uint32
-	FifoSize  misc.Uframes
+	FifoSize  alsatype.Uframes
 	_         [64]byte
 }
 

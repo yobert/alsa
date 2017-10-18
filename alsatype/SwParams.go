@@ -1,34 +1,16 @@
-package alsa
+package alsatype
 
 import (
 	"fmt"
 	"reflect"
+	
 )
 
-type swParams struct {
-	TstampMode int32
-	PeriodStep uint32
-	SleepMin   uint32
-
-	AvailMin         uint
-	XferAlign        uint
-	StartThreshold   uint
-	StopThreshold    uint
-	SilenceThreshold uint
-	SilenceSize      uint
-	Boundary         uint
-
-	Proto         pVersion
-	TstampType    uint32
-	Reserved      [56]byte
-	padding_for_c [4]byte
+func (s *SwParams) String() string {
+	return s.Diff(&SwParams{})
 }
 
-func (s *swParams) String() string {
-	return s.Diff(&swParams{})
-}
-
-func (s *swParams) Diff(w *swParams) string {
+func (s *SwParams) Diff(w *SwParams) string {
 	r := ""
 
 	v1 := reflect.ValueOf(*s)
