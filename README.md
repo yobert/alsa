@@ -17,3 +17,10 @@ buggy ring buffer going on:
     $GOPATH/echoback
 
 Both examples default to your first ALSA card and device.
+
+contributors
+------------
+Thanks to the wonderful contributions of:
+
+- Christopher Harrington (https://github.com/ironiridis)
+
