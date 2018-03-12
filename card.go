@@ -2,8 +2,11 @@ package alsa
 
 import (
 	"fmt"
-	"github.com/yobert/alsa/alsatype"
+	"io/ioutil"
 	"os"
+	"path"
+
+	"github.com/yobert/alsa/alsatype"
 )
 
 type Card struct {
@@ -21,25 +24,27 @@ func (card Card) String() string {
 }
 
 func OpenCards() ([]*Card, error) {
-	ret := make([]*Card, 0)
-
-	max := 3 // arbitrary
-	for i := 0; i < max; i++ {
-		path := fmt.Sprintf("/dev/snd/controlC%d", i)
-		_, err := os.Stat(path)
-		if err != nil {
+	dir := "/dev/snd/"
+	fis, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	var ret []*Card
+	for _, fi := range fis {
+		var n int
+		if _, err := fmt.Sscanf(fi.Name(), "controlC%d", &n); err != nil {
 			continue
 		}
-		max++
 
-		fh, err := os.Open(path)
+		cardPath := path.Join(dir, fi.Name())
+		fh, err := os.Open(cardPath)
 		if err != nil {
 			return ret, err
 		}
 
 		card := Card{
-			Path:   path,
-			Number: i,
+			Path:   cardPath,
+			Number: n,
 			fh:     fh,
 		}
 
