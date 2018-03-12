@@ -5,8 +5,8 @@ import (
 	"os"
 	"unsafe"
 
-	"github.com/yobert/alsa/color"
 	"github.com/yobert/alsa/alsatype"
+	"github.com/yobert/alsa/color"
 	"github.com/yobert/alsa/pcm"
 )
 

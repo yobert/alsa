@@ -2,8 +2,8 @@ package alsa
 
 import (
 	"fmt"
-	"os"
 	"github.com/yobert/alsa/alsatype"
+	"os"
 )
 
 type Card struct {

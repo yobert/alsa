@@ -3,7 +3,6 @@ package alsatype
 import (
 	"fmt"
 	"reflect"
-	
 )
 
 func (s *SwParams) String() string {

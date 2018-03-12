@@ -23,8 +23,8 @@ type SwParams struct {
 	SilenceSize      Uframes
 	Boundary         Uframes
 
-	Proto         PVersion
-	TstampType    uint32
-	Reserved      [56]byte
+	Proto      PVersion
+	TstampType uint32
+	Reserved   [56]byte
 }
 type PVersion uint32
