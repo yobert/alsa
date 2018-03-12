@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"sync"
 	"time"
 
 	"github.com/yobert/alsa"
@@ -41,7 +42,7 @@ func beepCard(card *alsa.Card) error {
 		fmt.Println("───", device)
 
 		if err := beepDevice(device); err != nil {
-			return err
+			fmt.Printf("error when beeping device: %v\n", err)
 		}
 	}
 	return nil
@@ -54,13 +55,17 @@ func beepDevice(device *alsa.Device) error {
 		return err
 	}
 
-	// Cleanup device when done or force cleanup after 4 seconds.
-	childCtx, cancel := context.WithDeadline(context.Background(), time.Now().Add(4*time.Second))
+	// Cleanup device when done or force cleanup after 3 seconds.
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	defer wg.Wait()
+	childCtx, cancel := context.WithDeadline(context.Background(), time.Now().Add(3*time.Second))
 	defer cancel()
 	go func(ctx context.Context) {
 		defer device.Close()
 		<-ctx.Done()
 		fmt.Println("Closing device.")
+		wg.Done()
 	}(childCtx)
 
 	channels, err := device.NegotiateChannels(1, 2)
@@ -78,8 +83,18 @@ func beepDevice(device *alsa.Device) error {
 		return err
 	}
 
-	// Prefer larger buffer to avoid under-run.
-	bufferSize, err := device.NegotiateBufferSize(16384, 8192)
+	// A 50ms period is a sensible value to test low-ish latency.
+	// We adjust the buffer so it's of minimal size (period * 2) since it appear ALSA won't
+	// start playback until the buffer has been filled to a certain degree and the automatic
+	// buffer size can be quite large.
+	wantPeriodSize := 44100 / 20
+
+	periodSize, err := device.NegotiatePeriodSize(wantPeriodSize)
+	if err != nil {
+		return err
+	}
+
+	bufferSize, err := device.NegotiateBufferSize(wantPeriodSize * 2)
 	if err != nil {
 		return err
 	}
@@ -88,14 +103,16 @@ func beepDevice(device *alsa.Device) error {
 		return err
 	}
 
-	fmt.Printf("Negotiated parameters: %d channels, %d hz, %v, %d frame buffer\n",
-		channels, rate, format, bufferSize)
+	fmt.Printf("Negotiated parameters: %d channels, %d hz, %v, %d period size, %d buffer size\n",
+		channels, rate, format, periodSize, bufferSize)
 
 	// Play 2 seconds of beep.
-	for t := 0.; t < 2; {
+	duration := 2 * time.Second
+	t := time.NewTimer(duration)
+	for t := 0.; t < duration.Seconds(); {
 		var buf bytes.Buffer
 
-		for i := 0; i < bufferSize; i++ {
+		for i := 0; i < periodSize; i++ {
 			v := math.Sin(t * 2 * math.Pi * 440) // A4
 			v *= 0.1                             // make a little quieter
 
@@ -121,10 +138,14 @@ func beepDevice(device *alsa.Device) error {
 			t += 1 / float64(rate)
 		}
 
-		if err := device.Write(buf.Bytes(), bufferSize); err != nil {
+		if err := device.Write(buf.Bytes(), periodSize); err != nil {
 			return err
 		}
 	}
+	// Wait for playback to complete.
+	<-t.C
+	fmt.Printf("Playback should be complete now.\n")
+	time.Sleep(1 * time.Second) // To allow a human to compare real playback end with supposed.
 
 	return nil
 }
