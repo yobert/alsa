@@ -2,9 +2,11 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"math"
+	"time"
 
 	"github.com/yobert/alsa"
 )
@@ -21,14 +23,13 @@ func main() {
 	for _, card := range cards {
 		fmt.Println(card)
 
-		if err := beep_card(card); err != nil {
-			fmt.Println(err)
-			return
+		if err := beepCard(card); err != nil {
+			fmt.Printf("error when beeping card: %v\n", err)
 		}
 	}
 }
 
-func beep_card(card *alsa.Card) error {
+func beepCard(card *alsa.Card) error {
 	devices, err := card.Devices()
 	if err != nil {
 		return err
@@ -39,20 +40,28 @@ func beep_card(card *alsa.Card) error {
 		}
 		fmt.Println("───", device)
 
-		if err := beep_device(device); err != nil {
+		if err := beepDevice(device); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func beep_device(device *alsa.Device) error {
+func beepDevice(device *alsa.Device) error {
 	var err error
 
 	if err = device.Open(); err != nil {
 		return err
 	}
-	defer device.Close()
+
+	// Cleanup device when done or force cleanup after 4 seconds.
+	childCtx, cancel := context.WithDeadline(context.Background(), time.Now().Add(4*time.Second))
+	defer cancel()
+	go func(ctx context.Context) {
+		defer device.Close()
+		<-ctx.Done()
+		fmt.Println("Closing device.")
+	}(childCtx)
 
 	channels, err := device.NegotiateChannels(1, 2)
 	if err != nil {
@@ -69,7 +78,8 @@ func beep_device(device *alsa.Device) error {
 		return err
 	}
 
-	buffer_size, err := device.NegotiateBufferSize(1024, 8192, 16384)
+	// Prefer larger buffer to avoid under-run.
+	bufferSize, err := device.NegotiateBufferSize(16384, 8192)
 	if err != nil {
 		return err
 	}
@@ -78,42 +88,40 @@ func beep_device(device *alsa.Device) error {
 		return err
 	}
 
-	buf := bytes.NewBuffer(nil)
-	t := 0.0
-
 	fmt.Printf("Negotiated parameters: %d channels, %d hz, %v, %d frame buffer\n",
-		channels, rate, format, buffer_size)
+		channels, rate, format, bufferSize)
 
-	for {
-		buf.Reset()
+	// Play 2 seconds of beep.
+	for t := 0.; t < 2; {
+		var buf bytes.Buffer
 
-		for i := 0; i < buffer_size; i++ {
+		for i := 0; i < bufferSize; i++ {
 			v := math.Sin(t * 2 * math.Pi * 440) // A4
 			v *= 0.1                             // make a little quieter
 
 			switch format {
 			case alsa.S16_LE:
-				sample := int16(v * ((1 << 16) - 1))
+				sample := int16(v * math.MaxInt16)
 
 				for c := 0; c < channels; c++ {
-					binary.Write(buf, binary.LittleEndian, sample)
+					binary.Write(&buf, binary.LittleEndian, sample)
 				}
 
 			case alsa.S32_LE:
-				sample := int32(v * ((1 << 32) - 1))
+				sample := int32(v * math.MaxInt32)
 
 				for c := 0; c < channels; c++ {
-					binary.Write(buf, binary.LittleEndian, sample)
+					binary.Write(&buf, binary.LittleEndian, sample)
 				}
 
 			default:
 				return fmt.Errorf("Unhandled sample format: %v", format)
 			}
 
-			t += 1.0 / float64(rate)
+			t += 1 / float64(rate)
 		}
 
-		if err := device.Write(buf.Bytes(), buffer_size); err != nil {
+		if err := device.Write(buf.Bytes(), bufferSize); err != nil {
 			return err
 		}
 	}
