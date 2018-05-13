@@ -5,8 +5,8 @@ import (
 	"os"
 	"unsafe"
 
-	"github.com/yobert/alsa/color"
 	"github.com/yobert/alsa/alsatype"
+	"github.com/yobert/alsa/color"
 	"github.com/yobert/alsa/pcm"
 )
 
@@ -53,13 +53,13 @@ func (device Device) String() string {
 }
 
 func (card *Card) Devices() ([]*Device, error) {
-	var next int32 = -1
-	ret := make([]*Device, 0)
+	var ret []*Device
+	next := int32(-1)
 
 	for {
 		err := ioctl(card.fh.Fd(), ioctl_encode_ptr(cmdRead, &next, cmdControlPCMNextDevice), &next)
 		if err != nil {
-			return ret, err
+			return nil, err
 		}
 		if next == -1 {
 			// No more devices
@@ -73,27 +73,28 @@ func (card *Card) Devices() ([]*Device, error) {
 			pi.Stream = stream
 			err = ioctl(card.fh.Fd(), ioctl_encode_ptr(cmdRead|cmdWrite, &pi, cmdControlPCMInfo), &pi)
 			if err != nil {
-				// Probably means that device doesn't match that stream type
-			} else {
-				play := true
-				record := false
-				sstr := "p"
-				if stream == 1 {
-					play = false
-					record = true
-					sstr = "c"
-				}
-
-				ret = append(ret, &Device{
-					Type:    PCM,
-					Path:    fmt.Sprintf("/dev/snd/pcmC%dD%d%s", card.Number, next, sstr),
-					Play:    play,
-					Record:  record,
-					Number:  int(next),
-					Title:   gstr(pi.Name[:]),
-					pcminfo: pi,
-				})
+				// Probably means that device doesn't match that stream type.
+				continue
 			}
+
+			play := true
+			record := false
+			sstr := "p"
+			if stream == 1 {
+				play = false
+				record = true
+				sstr = "c"
+			}
+
+			ret = append(ret, &Device{
+				Type:    PCM,
+				Path:    fmt.Sprintf("/dev/snd/pcmC%dD%d%s", card.Number, next, sstr),
+				Play:    play,
+				Record:  record,
+				Number:  int(next),
+				Title:   gstr(pi.Name[:]),
+				pcminfo: pi,
+			})
 		}
 	}
 
