@@ -10,7 +10,7 @@ func (device *Device) NegotiateChannels(channels ...int) (int, error) {
 	for _, v := range channels {
 
 		if !device.hwparams.IntervalInRange(paramChannels, uint32(v)) {
-			err = fmt.Errorf("Channels %d out of range")
+			err = fmt.Errorf("Channels %d out of range", v)
 			continue
 		}
 
@@ -32,7 +32,7 @@ func (device *Device) NegotiateRate(rates ...int) (int, error) {
 
 	for _, v := range rates {
 		if !device.hwparams.IntervalInRange(paramRate, uint32(v)) {
-			err = fmt.Errorf("Rate %d out of range")
+			err = fmt.Errorf("Rate %d out of range", v)
 			continue
 		}
 
@@ -71,7 +71,7 @@ func (device *Device) NegotiateBufferSize(buffer_sizes ...int) (int, error) {
 
 	for _, v := range buffer_sizes {
 		if !device.hwparams.IntervalInRange(paramBufferSize, uint32(v)) {
-			err = fmt.Errorf("Buffer size %d out of range")
+			err = fmt.Errorf("Buffer size %d out of range", v)
 			continue
 		}
 
@@ -93,7 +93,7 @@ func (device *Device) NegotiatePeriodSize(period_sizes ...int) (int, error) {
 
 	for _, v := range period_sizes {
 		if !device.hwparams.IntervalInRange(paramPeriodSize, uint32(v)) {
-			err = fmt.Errorf("Period size %d out of range")
+			err = fmt.Errorf("Period size %d out of range", v)
 			continue
 		}
 
