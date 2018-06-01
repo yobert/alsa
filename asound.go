@@ -281,6 +281,14 @@ func (p *hwParams) SetFormat(f FormatType) {
 func (p *hwParams) SetMask(param param, v uint32) {
 	p.Masks[param-paramFirstMask].Bits[0] = v
 }
+func (p *hwParams) GetFormatSupport(f FormatType) bool {
+	bits := p.Masks[paramFormat-paramFirstMask].Bits[0]
+	b := bits & (1 << uint(f))
+	if b == 0 {
+		return false
+	}
+	return true
+}
 
 func (p *hwParams) SetInterval(param param, min, max uint32, flags Flags) {
 	p.Intervals[param-paramFirstInterval].Min = min
@@ -291,13 +299,18 @@ func (p *hwParams) SetIntervalToMin(param param) {
 	p.Intervals[param-paramFirstInterval].Max = p.Intervals[param-paramFirstInterval].Min
 }
 func (p *hwParams) IntervalInRange(param param, v uint32) bool {
-	if p.Intervals[param-paramFirstInterval].Min > v {
+	min, max := p.IntervalRange(param)
+	if min > v {
 		return false
 	}
-	if p.Intervals[param-paramFirstInterval].Max < v {
+	if max < v {
 		return false
 	}
 	return true
+}
+
+func (p *hwParams) IntervalRange(param param) (uint32, uint32) {
+	return p.Intervals[param-paramFirstInterval].Min, p.Intervals[param-paramFirstInterval].Max
 }
 
 func fmt_uint(v uint32) string {
