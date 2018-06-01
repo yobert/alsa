@@ -2,7 +2,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/binary"
 	"flag"
 	"fmt"
@@ -73,7 +72,6 @@ func main() {
 }
 
 // record audio for duration seconds
-// Side effects: channels and rate may differ from requested values
 func record(rec *alsa.Device, duration int) (alsa.Buffer, error) {
 	var err error
 
@@ -152,26 +150,20 @@ func save(recording alsa.Buffer, file string) error {
 		SampleRate:  recording.Format.Rate,
 	}
 
-	// for easy binary decoding
-	buf := bytes.NewBuffer(recording.Data)
-
 	// Convert into the format go-audio/wav wants
+	var off int
 	switch recording.Format.SampleFormat {
 	case alsa.S32_LE:
-		var v int32
+		inc := binary.Size(uint32(0))
 		for i := 0; i < sampleCount; i++ {
-			if err := binary.Read(buf, binary.LittleEndian, &v); err != nil {
-				return fmt.Errorf("Buffer conversion read error: %v", err)
-			}
-			data[i] = int(v)
+			data[i] = int(binary.LittleEndian.Uint32(recording.Data[off:]))
+			off += inc
 		}
 	case alsa.S16_LE:
-		var v int16
+		inc := binary.Size(uint16(0))
 		for i := 0; i < sampleCount; i++ {
-			if err := binary.Read(buf, binary.LittleEndian, &v); err != nil {
-				return fmt.Errorf("Buffer conversion read error: %v", err)
-			}
-			data[i] = int(v)
+			data[i] = int(binary.LittleEndian.Uint16(recording.Data[off:]))
+			off += inc
 		}
 	default:
 		return fmt.Errorf("Unhandled ALSA format %v", recording.Format.SampleFormat)
