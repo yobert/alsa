@@ -87,7 +87,8 @@ func beepDevice(device *alsa.Device) error {
 	// We adjust the buffer so it's of minimal size (period * 2) since it appear ALSA won't
 	// start playback until the buffer has been filled to a certain degree and the automatic
 	// buffer size can be quite large.
-	wantPeriodSize := 44100 / 20
+	// Some devices only accept even periods while others want powers of 2.
+	wantPeriodSize := 2048 // 46ms @ 44100Hz
 
 	periodSize, err := device.NegotiatePeriodSize(wantPeriodSize)
 	if err != nil {
