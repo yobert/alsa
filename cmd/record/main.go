@@ -2,20 +2,15 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"os"
-	"reflect"
-	"unsafe"
 
 	"github.com/go-audio/audio"
 	"github.com/go-audio/wav"
 	"github.com/yobert/alsa"
-)
-
-const (
-	bitDepth = 32
-	intSize  = 4
 )
 
 var (
@@ -64,8 +59,7 @@ func main() {
 	}
 	fmt.Printf("Recording device: %v\n", recordDevice)
 
-	var recording []byte
-	recording, err = record(recordDevice, duration)
+	recording, err := record(recordDevice, duration)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -80,77 +74,110 @@ func main() {
 
 // record audio for duration seconds
 // Side effects: channels and rate may differ from requested values
-func record(rec *alsa.Device, duration int) ([]byte, error) {
+func record(rec *alsa.Device, duration int) (alsa.Buffer, error) {
 	var err error
 
 	if err = rec.Open(); err != nil {
-		return nil, err
+		return alsa.Buffer{}, err
 	}
 	defer rec.Close()
 
-	channels, err := rec.NegotiateChannels(channels)
+	_, err = rec.NegotiateChannels(channels)
 	if err != nil {
-		return nil, err
+		return alsa.Buffer{}, err
 	}
 
-	rate, err := rec.NegotiateRate(rate)
+	_, err = rec.NegotiateRate(rate)
 	if err != nil {
-		return nil, err
+		return alsa.Buffer{}, err
 	}
 
-	format, err := rec.NegotiateFormat(alsa.S32_LE)
+	_, err = rec.NegotiateFormat(alsa.S16_LE, alsa.S32_LE)
 	if err != nil {
-		return nil, err
+		return alsa.Buffer{}, err
 	}
 
 	bufferSize, err := rec.NegotiateBufferSize(8192, 16384)
 	if err != nil {
-		return nil, err
+		return alsa.Buffer{}, err
 	}
 
 	if err = rec.Prepare(); err != nil {
-		return nil, err
+		return alsa.Buffer{}, err
 	}
 
-	fmt.Printf("Negotiated parameters: %d channels, %d hz, %v, %d frame buffer, %d bytes/frame\n",
-		channels, rate, format, bufferSize, rec.BytesPerFrame())
+	buf := rec.NewBufferSeconds(duration)
 
-	recFrames := rate * duration
-	recBytes := recFrames * rec.BytesPerFrame()
+	fmt.Printf("Negotiated parameters: %v, %d frame buffer, %d bytes/frame\n",
+		buf.Format, bufferSize, rec.BytesPerFrame())
 
-	buf := make([]byte, recBytes)
-	fmt.Printf("Recording for %d seconds (%d frames, %d bytes)...\n", duration, recFrames, recBytes)
-	err = rec.Read(buf, recFrames)
+	fmt.Printf("Recording for %d seconds (%d frames, %d bytes)...\n", duration, len(buf.Data)/rec.BytesPerFrame(), len(buf.Data))
+	err = rec.Read(buf.Data)
 	if err != nil {
-		return nil, err
+		return alsa.Buffer{}, err
 	}
 	fmt.Println("Recording stopped.")
 	return buf, nil
 }
 
 // save recording to a WAV file
-func save(recording []byte, file string) error {
+func save(recording alsa.Buffer, file string) error {
 	of, err := os.Create(file)
 	if err != nil {
 		return err
 	}
 	defer of.Close()
 
-	enc := wav.NewEncoder(of, rate, bitDepth, channels, 1)
-
-	// insert the recording data into an audio.IntBuffer
-	// is there a cleaner way?
-	var data []int
-	dataSize := len(recording) / intSize
-	sh := (*reflect.SliceHeader)(unsafe.Pointer(&data))
-	sh.Data = uintptr(unsafe.Pointer(&recording[0]))
-	sh.Len = dataSize
-	sh.Cap = dataSize
-	format := &audio.Format{
-		NumChannels: channels,
-		SampleRate:  rate,
+	var sampleBytes int
+	switch recording.Format.SampleFormat {
+	case alsa.S32_LE:
+		sampleBytes = 4
+	case alsa.S16_LE:
+		sampleBytes = 2
+	default:
+		return fmt.Errorf("Unhandled ALSA format %v", recording.Format.SampleFormat)
 	}
-	intBuf := &audio.IntBuffer{Data: data, Format: format, SourceBitDepth: bitDepth}
+
+	// normal uncompressed WAV format (I think)
+	// https://web.archive.org/web/20080113195252/http://www.borg.com/~jglatt/tech/wave.htm
+	wavformat := 1
+
+	enc := wav.NewEncoder(of, recording.Format.Rate, sampleBytes*8, recording.Format.Channels, wavformat)
+
+	sampleCount := len(recording.Data) / sampleBytes
+	data := make([]int, sampleCount)
+
+	format := &audio.Format{
+		NumChannels: recording.Format.Channels,
+		SampleRate:  recording.Format.Rate,
+	}
+
+	// for easy binary decoding
+	buf := bytes.NewBuffer(recording.Data)
+
+	// Convert into the format go-audio/wav wants
+	switch recording.Format.SampleFormat {
+	case alsa.S32_LE:
+		var v int32
+		for i := 0; i < sampleCount; i++ {
+			if err := binary.Read(buf, binary.LittleEndian, &v); err != nil {
+				return fmt.Errorf("Buffer conversion read error: %v", err)
+			}
+			data[i] = int(v)
+		}
+	case alsa.S16_LE:
+		var v int16
+		for i := 0; i < sampleCount; i++ {
+			if err := binary.Read(buf, binary.LittleEndian, &v); err != nil {
+				return fmt.Errorf("Buffer conversion read error: %v", err)
+			}
+			data[i] = int(v)
+		}
+	default:
+		return fmt.Errorf("Unhandled ALSA format %v", recording.Format.SampleFormat)
+	}
+
+	intBuf := &audio.IntBuffer{Data: data, Format: format, SourceBitDepth: sampleBytes * 8}
 
 	if err := enc.Write(intBuf); err != nil {
 		return err

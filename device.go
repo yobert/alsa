@@ -201,13 +201,44 @@ func (device *Device) Prepare() error {
 	}
 
 	if err := ioctl(device.fh.Fd(), ioctl_encode(0, 0, cmdPCMPrepare), nil); err != nil {
-		return err
+		return fmt.Errorf("Device prepare failure: %v", err)
 	}
 
 	return nil
 }
 
-func (device *Device) Read(buf []byte, frames int) error {
+// BufferFormat() is not valid until after Prepare() is called
+func (device *Device) BufferFormat() BufferFormat {
+	bf := BufferFormat{}
+
+	for i := FormatTypeFirst; i < FormatTypeLast+1; i++ {
+		// there should only be 1 format bit set at this point
+		if device.hwparams.GetFormatSupport(i) {
+			bf.SampleFormat = i
+			break
+		}
+	}
+
+	v, _ := device.hwparams.IntervalRange(paramRate)
+	bf.Rate = int(v)
+	v, _ = device.hwparams.IntervalRange(paramChannels)
+	bf.Channels = int(v)
+
+	return bf
+}
+
+func (device *Device) NewBufferSeconds(seconds int) Buffer {
+	bf := device.BufferFormat()
+
+	frames := bf.Rate * seconds
+	bytecount := frames * device.BytesPerFrame()
+	data := make([]byte, bytecount)
+
+	return Buffer{Format: bf, Data: data}
+}
+
+func (device *Device) Read(buf []byte) error {
+	frames := len(buf) / device.BytesPerFrame()
 	x := pcm.XferI{
 		Buf:    uintptr(unsafe.Pointer(&buf[0])),
 		Frames: alsatype.Uframes(frames),

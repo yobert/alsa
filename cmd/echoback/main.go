@@ -158,8 +158,7 @@ func echoback(rec, play *alsa.Device, delay time.Duration) error {
 			}
 
 			fmt.Println("reading...")
-			frames_avail := avail / bytes_per_frame
-			err := rec.Read(buf[rc:rc+avail], frames_avail)
+			err := rec.Read(buf[rc : rc+avail])
 			if err != nil {
 				fmt.Println(err)
 				return
