@@ -72,7 +72,6 @@ func main() {
 }
 
 // record audio for duration seconds
-// Side effects: channels and rate may differ from requested values
 func record(rec *alsa.Device, duration int) (alsa.Buffer, error) {
 	var err error
 
