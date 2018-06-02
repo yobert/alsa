@@ -14,7 +14,6 @@ import (
 
 var (
 	rate     = 44100
-	channels = 2
 )
 
 func main() {
@@ -80,7 +79,7 @@ func record(rec *alsa.Device, duration int) (alsa.Buffer, error) {
 	}
 	defer rec.Close()
 
-	_, err = rec.NegotiateChannels(channels)
+	_, err = rec.NegotiateChannels(1, 2)
 	if err != nil {
 		return alsa.Buffer{}, err
 	}
