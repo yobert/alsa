@@ -6,29 +6,35 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/go-audio/audio"
 	"github.com/go-audio/wav"
 	"github.com/yobert/alsa"
 )
 
-var (
-	rate     = 44100
-)
-
 func main() {
-	var duration = 5
-	var file = "out.wav"
+	var (
+		rate         int
+		duration_str string
+		file         string
+	)
 
 	flag.IntVar(&rate, "rate", 44100, "Frame rate (Hz)")
-	flag.IntVar(&duration, "duration", 5, "Recording duration (s)")
+	flag.StringVar(&duration_str, "duration", "5s", "Recording duration")
 	flag.StringVar(&file, "file", "out.wave", "Output file")
 	flag.Parse()
+
+	duration, err := time.ParseDuration(duration_str)
+	if err != nil {
+		fmt.Println("Cannot parse duration:", err)
+		os.Exit(1)
+	}
 
 	cards, err := alsa.OpenCards()
 	if err != nil {
 		fmt.Println(err)
-		return
+		os.Exit(1)
 	}
 	defer alsa.CloseCards(cards)
 
@@ -39,7 +45,7 @@ func main() {
 		devices, err := card.Devices()
 		if err != nil {
 			fmt.Println(err)
-			return
+			os.Exit(1)
 		}
 		for _, device := range devices {
 			if device.Type != alsa.PCM {
@@ -53,25 +59,28 @@ func main() {
 
 	if recordDevice == nil {
 		fmt.Println("No recording device found")
-		return
+		os.Exit(1)
 	}
 	fmt.Printf("Recording device: %v\n", recordDevice)
 
-	recording, err := record(recordDevice, duration)
+	recording, err := record(recordDevice, duration, rate)
 	if err != nil {
 		fmt.Println(err)
-		return
+		os.Exit(1)
 	}
 
 	err = save(recording, file)
 	if err != nil {
 		fmt.Println(err)
-		return
+		os.Exit(1)
 	}
+
+	// success!
+	return
 }
 
 // record audio for duration seconds
-func record(rec *alsa.Device, duration int) (alsa.Buffer, error) {
+func record(rec *alsa.Device, duration time.Duration, rate int) (alsa.Buffer, error) {
 	var err error
 
 	if err = rec.Open(); err != nil {
@@ -103,12 +112,12 @@ func record(rec *alsa.Device, duration int) (alsa.Buffer, error) {
 		return alsa.Buffer{}, err
 	}
 
-	buf := rec.NewBufferSeconds(duration)
+	buf := rec.NewBufferDuration(duration)
 
 	fmt.Printf("Negotiated parameters: %v, %d frame buffer, %d bytes/frame\n",
 		buf.Format, bufferSize, rec.BytesPerFrame())
 
-	fmt.Printf("Recording for %d seconds (%d frames, %d bytes)...\n", duration, len(buf.Data)/rec.BytesPerFrame(), len(buf.Data))
+	fmt.Printf("Recording for %s (%d frames, %d bytes)...\n", duration, len(buf.Data)/rec.BytesPerFrame(), len(buf.Data))
 	err = rec.Read(buf.Data)
 	if err != nil {
 		return alsa.Buffer{}, err
