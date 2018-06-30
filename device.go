@@ -238,7 +238,6 @@ func (device *Device) NewBufferDuration(d time.Duration) Buffer {
 	bf := device.BufferFormat()
 
 	frames := int(float64(bf.Rate)*d.Seconds() + 0.5)
-	fmt.Println("frames", frames, "from duration", d, "rate", bf.Rate)
 	bytecount := frames * device.BytesPerFrame()
 	data := make([]byte, bytecount)
 
