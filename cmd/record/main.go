@@ -2,35 +2,39 @@
 package main
 
 import (
-	"bytes"
 	"encoding/binary"
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/go-audio/audio"
 	"github.com/go-audio/wav"
 	"github.com/yobert/alsa"
 )
 
-var (
-	rate     = 44100
-	channels = 2
-)
-
 func main() {
-	var duration = 5
-	var file = "out.wav"
+	var (
+		rate         int
+		duration_str string
+		file         string
+	)
 
 	flag.IntVar(&rate, "rate", 44100, "Frame rate (Hz)")
-	flag.IntVar(&duration, "duration", 5, "Recording duration (s)")
+	flag.StringVar(&duration_str, "duration", "5s", "Recording duration")
 	flag.StringVar(&file, "file", "out.wave", "Output file")
 	flag.Parse()
+
+	duration, err := time.ParseDuration(duration_str)
+	if err != nil {
+		fmt.Println("Cannot parse duration:", err)
+		os.Exit(1)
+	}
 
 	cards, err := alsa.OpenCards()
 	if err != nil {
 		fmt.Println(err)
-		return
+		os.Exit(1)
 	}
 	defer alsa.CloseCards(cards)
 
@@ -41,7 +45,7 @@ func main() {
 		devices, err := card.Devices()
 		if err != nil {
 			fmt.Println(err)
-			return
+			os.Exit(1)
 		}
 		for _, device := range devices {
 			if device.Type != alsa.PCM {
@@ -55,26 +59,28 @@ func main() {
 
 	if recordDevice == nil {
 		fmt.Println("No recording device found")
-		return
+		os.Exit(1)
 	}
 	fmt.Printf("Recording device: %v\n", recordDevice)
 
-	recording, err := record(recordDevice, duration)
+	recording, err := record(recordDevice, duration, rate)
 	if err != nil {
 		fmt.Println(err)
-		return
+		os.Exit(1)
 	}
 
 	err = save(recording, file)
 	if err != nil {
 		fmt.Println(err)
-		return
+		os.Exit(1)
 	}
+
+	// success!
+	return
 }
 
 // record audio for duration seconds
-// Side effects: channels and rate may differ from requested values
-func record(rec *alsa.Device, duration int) (alsa.Buffer, error) {
+func record(rec *alsa.Device, duration time.Duration, rate int) (alsa.Buffer, error) {
 	var err error
 
 	if err = rec.Open(); err != nil {
@@ -82,7 +88,7 @@ func record(rec *alsa.Device, duration int) (alsa.Buffer, error) {
 	}
 	defer rec.Close()
 
-	_, err = rec.NegotiateChannels(channels)
+	_, err = rec.NegotiateChannels(1, 2)
 	if err != nil {
 		return alsa.Buffer{}, err
 	}
@@ -106,12 +112,12 @@ func record(rec *alsa.Device, duration int) (alsa.Buffer, error) {
 		return alsa.Buffer{}, err
 	}
 
-	buf := rec.NewBufferSeconds(duration)
+	buf := rec.NewBufferDuration(duration)
 
 	fmt.Printf("Negotiated parameters: %v, %d frame buffer, %d bytes/frame\n",
 		buf.Format, bufferSize, rec.BytesPerFrame())
 
-	fmt.Printf("Recording for %d seconds (%d frames, %d bytes)...\n", duration, len(buf.Data)/rec.BytesPerFrame(), len(buf.Data))
+	fmt.Printf("Recording for %s (%d frames, %d bytes)...\n", duration, len(buf.Data)/rec.BytesPerFrame(), len(buf.Data))
 	err = rec.Read(buf.Data)
 	if err != nil {
 		return alsa.Buffer{}, err
@@ -152,26 +158,20 @@ func save(recording alsa.Buffer, file string) error {
 		SampleRate:  recording.Format.Rate,
 	}
 
-	// for easy binary decoding
-	buf := bytes.NewBuffer(recording.Data)
-
 	// Convert into the format go-audio/wav wants
+	var off int
 	switch recording.Format.SampleFormat {
 	case alsa.S32_LE:
-		var v int32
+		inc := binary.Size(uint32(0))
 		for i := 0; i < sampleCount; i++ {
-			if err := binary.Read(buf, binary.LittleEndian, &v); err != nil {
-				return fmt.Errorf("Buffer conversion read error: %v", err)
-			}
-			data[i] = int(v)
+			data[i] = int(binary.LittleEndian.Uint32(recording.Data[off:]))
+			off += inc
 		}
 	case alsa.S16_LE:
-		var v int16
+		inc := binary.Size(uint16(0))
 		for i := 0; i < sampleCount; i++ {
-			if err := binary.Read(buf, binary.LittleEndian, &v); err != nil {
-				return fmt.Errorf("Buffer conversion read error: %v", err)
-			}
-			data[i] = int(v)
+			data[i] = int(binary.LittleEndian.Uint16(recording.Data[off:]))
+			off += inc
 		}
 	default:
 		return fmt.Errorf("Unhandled ALSA format %v", recording.Format.SampleFormat)

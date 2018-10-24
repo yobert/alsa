@@ -3,6 +3,7 @@ package alsa
 import (
 	"fmt"
 	"os"
+	"time"
 	"unsafe"
 
 	"github.com/yobert/alsa/alsatype"
@@ -227,10 +228,16 @@ func (device *Device) BufferFormat() BufferFormat {
 	return bf
 }
 
+// This function is deprecated and will be removed at some point.
+// Please use NewBufferDuration
 func (device *Device) NewBufferSeconds(seconds int) Buffer {
+	return device.NewBufferDuration(time.Second * time.Duration(seconds))
+}
+
+func (device *Device) NewBufferDuration(d time.Duration) Buffer {
 	bf := device.BufferFormat()
 
-	frames := bf.Rate * seconds
+	frames := int(float64(bf.Rate)*d.Seconds() + 0.5)
 	bytecount := frames * device.BytesPerFrame()
 	data := make([]byte, bytecount)
 

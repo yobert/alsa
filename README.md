@@ -18,7 +18,12 @@ For a simple example of synthesized playback:
 
     go get github.com/yobert/alsa/cmd/beep
     $GOPATH/beep
-    
+
+And for recording from a microphone into a WAV file:
+
+    go get github.com/yobert/alsa/cmd/record
+    $GOPATH/record
+
 This example does recording and playback, but it's got a really
 buggy ring buffer going on:
 
