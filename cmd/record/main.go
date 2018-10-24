@@ -15,11 +15,13 @@ import (
 
 func main() {
 	var (
+		channels     int
 		rate         int
 		duration_str string
 		file         string
 	)
 
+	flag.IntVar(&channels, "channels", 2, "Channels (1 for mono, 2 for stereo)")
 	flag.IntVar(&rate, "rate", 44100, "Frame rate (Hz)")
 	flag.StringVar(&duration_str, "duration", "5s", "Recording duration")
 	flag.StringVar(&file, "file", "out.wave", "Output file")
@@ -63,7 +65,7 @@ func main() {
 	}
 	fmt.Printf("Recording device: %v\n", recordDevice)
 
-	recording, err := record(recordDevice, duration, rate)
+	recording, err := record(recordDevice, duration, channels, rate)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -79,8 +81,8 @@ func main() {
 	return
 }
 
-// record audio for duration seconds
-func record(rec *alsa.Device, duration time.Duration, rate int) (alsa.Buffer, error) {
+// record audio for given duration
+func record(rec *alsa.Device, duration time.Duration, channels, rate int) (alsa.Buffer, error) {
 	var err error
 
 	if err = rec.Open(); err != nil {
@@ -88,7 +90,7 @@ func record(rec *alsa.Device, duration time.Duration, rate int) (alsa.Buffer, er
 	}
 	defer rec.Close()
 
-	_, err = rec.NegotiateChannels(1, 2)
+	_, err = rec.NegotiateChannels(channels)
 	if err != nil {
 		return alsa.Buffer{}, err
 	}
