@@ -1,7 +1,7 @@
 [![](https://godoc.org/github.com/yobert/alsa?status.svg)](https://godoc.org/github.com/yobert/alsa)
 
-alsa
-----
+Synopsis
+--------
 This is a golang ALSA client implementation, without cgo! Unfortunately,
 doing it without cgo means throwing away many years of compatibility work
 that has been put into libalsa. So be warned, this library is not likely
@@ -14,7 +14,8 @@ side, so adding in support for what your audio card needs might actually
 be just a nice afternoon of programming. The hardest part for me was just
 trying to understand all of the alsa terminology.
 
-For a simple example of synthesized playback:
+For a simple example of synthesized playback, the beep command will produce
+a sine wave for a few seconds on each detected ALSA output:
 
     go get github.com/yobert/alsa/cmd/beep
     $GOPATH/beep
@@ -30,10 +31,15 @@ buggy ring buffer going on:
     go get github.com/yobert/alsa/cmd/echoback
     $GOPATH/echoback
 
-Both examples default to your first ALSA card and device.
+Disclaimer
+----------
+This module makes syscalls with pointers to memory buffers that are in garbage collectable memory. I have a feeling this isn't safe, but it hasn't crashed on me yet.
 
-contributors
+Contributors
 ------------
 Thanks so much for the help! Thanks! See AUTHORS for a list. Pull requests
 welcome from anybody, regardless of skill level.
 
+See Also
+--------
+You may be interested in https://github.com/jfreymuth/pulse which is a lot less likely to crash and will probably work with your sound card.
