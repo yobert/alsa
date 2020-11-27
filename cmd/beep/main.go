@@ -49,6 +49,7 @@ func beepCard(card *alsa.Card) error {
 }
 
 func beepDevice(device *alsa.Device) error {
+	const BEEPTIME=2
 	var err error
 
 	if err = device.Open(); err != nil {
@@ -59,7 +60,7 @@ func beepDevice(device *alsa.Device) error {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	defer wg.Wait()
-	childCtx, cancel := context.WithDeadline(context.Background(), time.Now().Add(3*time.Second))
+	childCtx, cancel := context.WithDeadline(context.Background(), time.Now().Add((BEEPTIME+1)*time.Second))
 	defer cancel()
 	go func(ctx context.Context) {
 		defer device.Close()
@@ -107,8 +108,8 @@ func beepDevice(device *alsa.Device) error {
 	fmt.Printf("Negotiated parameters: %d channels, %d hz, %v, %d period size, %d buffer size\n",
 		channels, rate, format, periodSize, bufferSize)
 
-	// Play 2 seconds of beep.
-	duration := 2 * time.Second
+	// Play BEEPTIME seconds of beep.
+	duration := BEEBTIME * time.Second
 	t := time.NewTimer(duration)
 	for t := 0.; t < duration.Seconds(); {
 		var buf bytes.Buffer
