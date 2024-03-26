@@ -1,8 +1,8 @@
 package alsatype
 
 type (
-	Uframes uint64 // snd_pcm_uframes_t
-	Sframes int64  // snd_pcm_sframes_t
+	Uframes uint // snd_pcm_uframes_t
+	Sframes int  // snd_pcm_sframes_t
 )
 
 type Timespec struct {
